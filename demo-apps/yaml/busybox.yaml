@@ -1,0 +1,83 @@
+apiVersion: apis.clusterfleet.io/v1alpha1
+kind: Application
+metadata:
+  annotations:
+    microsoft-falcon.net/clusterip-check: "disabled"
+    microsoft-falcon.net/falcon-core-service: "true"
+  name: busybox-test
+  namespace: clusterfleet
+spec:
+  version: "533634898"
+  rolloutStrategy:
+    progressiveRollout:
+      progressiveRolloutWindowSize: "2"
+      perClusterMinimumAvailableReplicasPct: 99%
+      perClusterRolloutDeadlineSeconds: 150
+      maxAllowedClustersPastDeadline: 10%
+  workload:
+    - manifest:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: busybox-test
+          namespace: clusterfleet
+        spec:
+          updateStrategy:
+            rollingUpdate:
+              maxUnavailable: 1
+            type: RollingUpdate
+          replicas: 3
+          selector:
+            matchLabels:
+              app: busybox-test
+          serviceName: ""
+          template:
+            metadata:
+              labels:
+                app: busybox-test
+                test: "6"
+            spec:
+              containers:
+              - args:
+                  - --http-port
+                  - "12012"
+                  - --startup-delay
+                  - "0"
+                env:
+                - name: TIMESTAMP
+                value: "2021-09-31T14:00:14Z"
+                envFrom:
+                - configMapRef:
+                    name: clusterfleet-config
+                image: busybox:latest
+                name: busybox-test
+                volumeMounts:
+                - mountPath: /var/run/docker.sock
+                  name: docker-sock
+                livenessProbe:
+                  failureThreshold: 3
+                  httpGet:
+                    path: /keepalive
+                    port: 12012
+                    scheme: HTTP
+                  initialDelaySeconds: 10
+                  periodSeconds: 10
+                  successThreshold: 1
+                  timeoutSeconds: 2
+                readinessProbe:
+                  failureThreshold: 3
+                  httpGet:
+                    path: /ready
+                    port: 12012
+                    scheme: HTTP
+                  initialDelaySeconds: 10
+                  periodSeconds: 10
+                  successThreshold: 1
+                  timeoutSeconds: 2
+              dnsPolicy: ClusterFirst
+              restartPolicy: Always
+              volumes:
+              - hostPath:
+                  path: /var/run/docker.sock
+                  type: ""
+                name: docker-sock

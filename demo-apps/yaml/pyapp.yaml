@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pyapp
+  namespace: clusterfleet
+spec:
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 1
+    type: RollingUpdate
+  replicas: 2
+  selector:
+    matchLabels:
+      app: pyapp
+  template:
+    metadata:
+      labels:
+        app: pyapp
+    spec:
+      containers:
+        - name: pyapp
+          env:
+            - name: TIMESTAMP
+              value: "2021-09-30T14:00:08Z"  # Corrected the timestamp date to a valid one
+          envFrom:
+            - configMapRef:
+                name: clusterfleet-config
+          image: pyapp:v001
+          volumeMounts:
+            - mountPath: /var/run/docker.sock
+              name: docker-sock
+            - mountPath: /features
+              name: preview-feature-config
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      volumes:
+        - name: docker-sock
+          hostPath:
+            path: /var/run/docker.sock
+            type: ""  # Consider reviewing the need to mount docker.sock for security
+        - name: preview-feature-config
+          configMap:
+            name: preview-features-pyapp
+            optional: true  # Keep this as optional if it's not critical
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: preview-features-pyapp
+  namespace: clusterfleet
+data:
+  all-control-clusters: |
+    - statefulset-slice-reconciliation
+    - enable-progressive-rollout-strategy

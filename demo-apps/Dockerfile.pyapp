@@ -1,0 +1,17 @@
+# Step 1: Start with a Python base image
+FROM python:3.9-slim
+
+# Step 2: Set the working directory in the container
+WORKDIR /app
+
+# Step 3: Copy the local application code to the container
+COPY cmd/pyapp .
+
+# Step 4: Install Python dependencies from the requirements file (if you have one)
+# RUN pip install --no-cache-dir -r requirements.txt
+
+# Step 5: Expose the port the app will run on (optional, if your app uses a port)
+EXPOSE 12013
+
+# Step 6: Define the command to run the application (e.g., starting a Flask app)
+CMD ["python", "/app/main.py"]

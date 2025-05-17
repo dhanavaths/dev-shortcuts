@@ -1,0 +1,26 @@
+FROM mcr.microsoft.com/oss/go/microsoft/golang:1.23 AS builder
+
+# TODO: Download docker from controlled repository
+RUN apt-get update \
+  && apt-get install -y curl make git ca-certificates \
+  && mkdir -p /app /docker \
+  && curl https://download.docker.com/linux/static/stable/x86_64/docker-20.10.8.tgz \
+  |  tar xz -C /docker
+
+WORKDIR /app
+
+COPY go.mod .
+COPY go.sum .
+RUN go mod download
+
+COPY . .
+RUN make build-demo-app CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOLDFLAGS="-w -s"
+
+
+FROM scratch
+
+ENV PATH /
+COPY --from=builder /app/_output/demo-app /
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+ENTRYPOINT [ "/demo-app", "--http-port", "12012"]

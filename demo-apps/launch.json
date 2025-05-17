@@ -1,0 +1,50 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    "version": "0.2.0",
+    "configurations": [ 
+        {
+            "name": "scheduler",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "cmd/scheduler/main.go",
+            "env": {
+                "CF_STANDARD_CLUSTER_NAME": "kind",
+                "CF_LOCALDISK_STORAGECLASSES": "local-disk-ephemeral-slow",
+                "CLUSTER_ENVIRONMENT": "DevDebugMode",
+                "POD__ID": "scheduler-commandline",
+                "POD__NAMESPACE": "default",
+                "APPLICATION__NAME": "scheduler-commandline",
+              },
+            "args": [
+                "run",
+                "--kubeconfig",
+                "/root/.kube/config",
+                "--debug"                
+            ]
+        },
+        {
+            "name": "clusterhealthcontroller-controlcluster",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "cmd/clusterhealthcontroller/main.go",
+            "env": {
+                "CF_CONTROL_CLUSTER_NAME": "cf-control-cluster",
+                "CF_CONTROL_CLUSTER_PROVIDER": "kind",
+                "CF_CONTROL_CLUSTER_REGION": "local",
+                "CF_STANDARD_CLUSTER_NAME": "sc000001",
+                "METRICS_PATH": "/metrics",
+                "METRICS_PORT": "9002"
+              },
+            "args": [
+                "run",
+                "controlcluster",
+                "--kubeconfig",
+                "/root/.kube/config",
+                "--debug"                
+            ]
+        }
+    ]
+}
