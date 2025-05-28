@@ -101,7 +101,9 @@ function handle_local_k_command() {
 		load-image|li)
 			read -p "Kind cluster name (Enter 'cc' for current cluster): " KIND_CLUSTER_NAME
 
-			if [ -z "$KIND_CLUSTER_NAME" ]; then
+			if [ "$3" == "-q" ]; then
+				cluster_list=$(kind get clusters)
+			elif [ -z "$KIND_CLUSTER_NAME" ]; then
 				cluster_list=$(kind get clusters)
 			else
 				cluster_list=$(kubectl config current-context | cut -d'-' -f2-)

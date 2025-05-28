@@ -2,6 +2,7 @@
 SCRIPTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 source "${SCRIPTDIR}/../shared/utils.sh"
 source "${SCRIPTDIR}/../shared/colors.sh"
+source "${SCRIPTDIR}/../bash/dev_config.sh"
 
 function confirm_on_kubectl_crud_operation() {
 	local user_input=""
@@ -224,7 +225,24 @@ function kpverb()
 						echo "Cannot use production context to apply dev components!"
 						exit 0
 					fi
+					kind load docker-image scheduler --name $KIND_CONTROL_CLUSTER_NAME
 					kubectl $kube_config $_ns apply -f hack/deployments/kind-scheduler.yaml
+					;;
+				syncer)
+					if [ -n "$kube_config" ]; then
+						echo "Cannot use production context to apply dev components!"
+						exit 0
+					fi
+
+					kubectl config use-context kind-$KIND_CONTROL_CLUSTER_NAME
+					local cluster_list
+					cluster_list=$(kubectl get cl -o=custom-columns='NAME:.metadata.name' | grep -v NAME | tr '\n' ' ')
+
+					for cluster in $cluster_list; do
+						kubectl config use-context kind-$cluster
+						kubectl $kube_config $_ns apply -f hack/deployments/kind-standardcluster.yaml
+					done
+					kubectl config use-context kind-$KIND_CONTROL_CLUSTER_NAME
 					;;
 				demo-app-pr|demo-app-ds|demo-app-ss|demo-app)
 					if [ -n "$kube_config" ]; then
