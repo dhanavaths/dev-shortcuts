@@ -34,6 +34,7 @@ function _execute_dev_commands() {
             ;;            
         export-kubes)
             kind get clusters | awk '{}{print "kind export kubeconfig --name " $$0}{}' | sh
+            ;;
         *)
             echo "Command not found"
             ;;
