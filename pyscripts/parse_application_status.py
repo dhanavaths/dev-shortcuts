@@ -36,6 +36,10 @@ def _get_ready_condition(cond_list):
     return 'Unknown', 'Unknown'
 
 def _parse_framework(data):
+    if not data.get('status'):
+        print('Status not found!')
+        return
+
     cluster_data = [('CLUSTER', 'POD_NAME', 'TASK_STATE', 'OBSERVED_GENERATION', 'READY?', 'REASON')]
     cluster_data_errors = []
     state_counts = {}
@@ -144,8 +148,9 @@ def __print_deployment_manifest_statuses_table(data):
             for condition in manifest["status"].get('conditions', []):
                 if condition["type"] == "Available":
                     status_available = condition["status"]
-                    message = condition["message"]
-            
+                    if status_available != 'True':
+                        message = condition["message"]
+
             _gen_diff = cluster.get('observedGeneration', 0) - data['metadata']['generation']
             mw_status_table.add_row([
                 cluster_name,
@@ -191,7 +196,7 @@ def __print_application_information(data):
             continue
 
         for container in workload['manifest']['spec']['template']['spec']['containers']:
-            images.add(container['image'])
+            images.add(container['image'].rsplit('/', 1)[-1])
 
     info_table.add_row([
         data['spec']['version'],
@@ -200,15 +205,15 @@ def __print_application_information(data):
         data['status']['rolloutStatus'],
         data['status'].get('applicationState', ''),
         data['status'].get('lastKnownGoodVersion', ''),
-        images
+        "\n".join(images)
     ])
     print(info_table)
-    print('rolloutStrategy:\n', data['spec'].get('rolloutStrategy', ''))
-    print('rollbackStrategy:\n', data['spec'].get('rollbackStrategy', ''))
+    print('rolloutStrategy:\n', json.dumps(data['spec'].get('rolloutStrategy', {}), indent=2))
+    print('rollbackStrategy:\n', json.dumps(data['spec'].get('rollbackStrategy', {}), indent=2))
 
 def _parse_deployment(data):
     if not data.get('status'):
-        _print_err('No status found')
+        _print_err('Status not found!')
         return
     __print_deployment_manifest_statuses_table(data)
     __print_application_conditions(data)
@@ -237,8 +242,8 @@ def __print_daemonset_manifest_statuses_table(data):
             for condition in manifest["status"].get('conditions', []):
                 if condition["type"] == "Available":
                     status_available = condition["status"]
-                    message = condition["message"]
-            
+                    if status != 'True':
+                        message = condition["message"]
 
             _gen_diff = cluster.get('observedGeneration', 0) - data['metadata']['generation']
             mw_status_table.add_row([
@@ -261,7 +266,7 @@ def __print_daemonset_manifest_statuses_table(data):
 
 def _parse_daemonset(data):
     if not data.get('status'):
-        _print_err('No status found')
+        _print_err('Status not found!')
         return
     __print_daemonset_manifest_statuses_table(data)
     __print_application_conditions(data)

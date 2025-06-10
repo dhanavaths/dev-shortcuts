@@ -4,6 +4,8 @@ metadata:
   annotations:
     microsoft-falcon.net/clusterip-check: "disabled"
     microsoft-falcon.net/falcon-core-service: "true"
+    apis.clusterfleet.io/node-ready-not-required: "true"
+    apis.clusterfleet.io/node-user-mode-not-required: "true"
   name: demo-app
   namespace: clusterfleet
 spec:
@@ -22,7 +24,7 @@ spec:
             rollingUpdate:
               maxUnavailable: 1
             type: RollingUpdate
-          replicas: 3
+          replicas: 1
           selector:
             matchLabels:
               app: demo-app
@@ -31,7 +33,7 @@ spec:
             metadata:
               labels:
                 app: demo-app
-                test: "6"
+                test: "8"
             spec:
               containers:
               - args:
@@ -70,6 +72,13 @@ spec:
                   periodSeconds: 10
                   successThreshold: 1
                   timeoutSeconds: 2
+                resources:
+                  requests:
+                    cpu: "1"
+                    memory: "1G"
+              nodeSelector:
+                kubernetes.azure.com/mode: user
+                kubernetes.io/os: linux
               dnsPolicy: ClusterFirst
               restartPolicy: Always
               volumes:

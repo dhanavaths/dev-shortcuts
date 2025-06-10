@@ -71,6 +71,9 @@ function kpresource()
 				
 				_object=$(kubectl $kube_config -n $1 get app ${_app_name} -ojson)
 				_clusters=$(echo "$_object" | jq -r '.status.clusters[].cluster')
+				if [ $? -ne 0 ]; then
+					echo "Failed to read clusters from app status"
+				fi
 				_uid=$(echo "$_object" | jq -r '.metadata.uid')
 				local i=0
 				local _output
