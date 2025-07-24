@@ -30,18 +30,11 @@ function get_namespace(){
 	echo "$_namespace"
 }
 
-
-function is_extended_output() {
-	if [[ "$@" ==  *" -less"* ]] || [[ "$@" ==  *" -oless"* ]]; then
-		echo "1"
-	elif [[ "$@" == *" -code"* ]] || [[ "$@" == *" -ocode"* ]]; then
-		echo "2"
+function get_namespace_extended() {
+	local _namespace=$(get_namespace "$1")
+	if [ "$_namespace" = "-" ]; then
+		echo ""
 	else
-		echo "0"
+		echo "-n $_namespace"
 	fi
-}
-
-function replace_exteded_output() {
-	_final_string=$(echo $@ | sed  's/ -less//g' | sed  's/ -oless//g' | sed 's/ -ocode//g' | sed 's/ -code//g')
-	echo $_final_string
 }

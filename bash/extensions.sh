@@ -27,8 +27,7 @@ function bashrc()
 function publishscripts() {
 	local _scriptsAbsPath=$(readlink -f "${SCRIPTDIR}/../../scripts")
 	_=$(cd ${_scriptsAbsPath}/../; zip -r /tmp/scripts.zip scripts)
-	cp /tmp/scripts.zip /mnt/q/scripts/
-	cp -r ${_scriptsAbsPath} /mnt/q/
+	rsync -av --exclude='.git' "${_scriptsAbsPath}" /mnt/q/
 }
 
 function execute_dev_command() {

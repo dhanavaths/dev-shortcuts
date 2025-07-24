@@ -26,6 +26,12 @@ pod=$(kubectl $kube_config -n clusterfleet get pods -l "app=kubeconfig-fetcher" 
 kubectl $kube_config -n clusterfleet exec -it $pod -c utility --context $uc-admin -- /bin/bash -c "$query"
 echo "Copying kubeconfig from $pod for cluster $cl"
 kubectl $kube_config cp -c utility clusterfleet/$pod:/tmp/kubeconfigs/clusters/$cl kubeconf --context $uc-admin
+
+if [ ! -f kubeconf ]; then
+    echo "Failed to copy kubeconfig from $pod for cluster $cl"
+    exit 1
+fi
+
 KUBECONFIG=kubeconf:$kube_config_path kubectl config view --flatten > merged-kubeconfig.yaml
 cp -a $kube_config_path $kube_config_path-bkp
 cp -a merged-kubeconfig.yaml $kube_config_path

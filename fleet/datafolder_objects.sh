@@ -1,5 +1,5 @@
 #!/bin/bash
-namespace=$1
+_ns=$1
 dfname=$2
 
 kubectl ${kube_config} -n $namespace get df

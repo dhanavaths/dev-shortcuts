@@ -3,6 +3,7 @@ SCRIPTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 source "${SCRIPTDIR}/../shared/utils.sh"
 source "${SCRIPTDIR}/../shared/colors.sh"
 source "${SCRIPTDIR}/../bash/dev_config.sh"
+source "${SCRIPTDIR}/../shared/runtime_utils.sh"
 
 function confirm_on_kubectl_crud_operation() {
 	local user_input=""
@@ -78,10 +79,10 @@ function kpresource()
 				local i=0
 				local _output
 				if [ -z $_attr_path ]; then
-					kubectl $kube_config get mw -A -l "apis.clusterfleet.io/work=$_uid" -owide
+					kubectl $kube_config get mw -A -l "apis.clusterfleet.io/work=$_uid" -owide ${OPT_SORT_BY}
 				else
 					for cl in $_clusters; do
-						_output=$(kubectl $kube_config -n std-cluster-$cl get mw "$1.${_app_name}" -ojson | jq -r ".items[] | $_attr_path")
+						_output=$(kubectl $kube_config -n std-cluster-$cl get mw "$1.${_app_name}" -ojson ${OPT_SORT_BY} | jq -r ".items[] | $_attr_path")
 						#echo "$cl $_output"
 					done
 				fi
@@ -116,22 +117,112 @@ function is_app_custom_subresource() {
 
 function kpverb()
 {
-	local wide_output=""
-	local given_namespace=$1
-	local _ns="${1}" && [ "$_ns" = "-" ] && _ns="" || _ns="-n $_ns"
-
-	extended_output=$(is_extended_output $@)
-	if [[ "$extended_output" != "0" ]]; then
-		wide_output="-oyaml"
-	elif [[ "$@" != *" -o"* ]]; then
-		if [[ "$@" == *" all"* ]]; then
-			wide_output="-owide"
-		else
-			wide_output="-owide --sort-by=.metadata.name"
-		fi
-	fi
-
 	case $2 in
+		chr)
+			kubectl $kube_config get chr clusterhealth-report-$3 -oyaml
+			;;
+		clm)
+			if [ -z "$3" ]; then
+				echo "kubectl $kube_config get cl -o=custom-columns=\"NAME:.metadata.name,majorersion:.metadata.labels.microsoft-falcon\.net\/cycle-majorersion\" | cut -d\" \" -f4 | sort | uniq -c" >&2
+				kubectl $kube_config get cl -o=custom-columns="NAME:.metadata.name,majorersion:.metadata.labels.microsoft-falcon\.net\/cycle-majorersion" | cut -d" " -f4 | sort | uniq -c
+				return
+			fi
+			echo "kubectl $kube_config get cl -l microsoft-falcon.net/cycle-majorersion=$3" >&2
+			kubectl $kube_config get cl -l microsoft-falcon.net/cycle-majorersion=$3 ${OPT_SORT_BY}
+			echo -e "${YELLOW}Cluster Vnet and Subnet IDs:${DEFAULTCOLOR}" >&2
+			kubectl $kube_config get cl -l microsoft-falcon.net/cycle-majorersion=$3 ${OPT_SORT_BY} -o json | \
+				jq -r '.items[] |
+				.metadata.name as $name |
+				.spec.properties.subnetResourceId as $id |
+				($id | split("/") as $parts |
+				[$parts[4], $parts[-1], $name] | @tsv)' | \
+				sort | \
+				column -t -s $'\t' 
+			;;
+		clr)
+			if [ -z "$3" ]; then
+				echo "kubectl $kube_config get cl -o=custom-columns=\"NAME:.metadata.name,majorersion:.metadata.labels.microsoft-falcon\.net\/cycle-version\" | cut -d\" \" -f4 | sort | uniq -c" >&2
+				kubectl $kube_config get cl -o=custom-columns="NAME:.metadata.name,CYCLEVERSION:.metadata.labels.microsoft-falcon\.net\/cycle-version" | cut -d" " -f4 | sort | uniq -c
+				return
+			fi
+			echo "kubectl $kube_config get cl -l microsoft-falcon.net/cycle-version=$3" >&2
+			kubectl $kube_config get cl -l microsoft-falcon.net/cycle-version=$3 ${OPT_SORT_BY}
+			echo -e "${YELLOW}Cluster Vnet and Subnet IDs:${DEFAULTCOLOR}" >&2
+			kubectl $kube_config get cl -l microsoft-falcon.net/cycle-version=$3 ${OPT_SORT_BY} -o json | \
+				jq -r '.items[] |
+				.metadata.name as $name |
+				.spec.properties.subnetResourceId as $id |
+				($id | split("/") as $parts |
+				[$parts[4], $parts[-1], $name] | @tsv)' | \
+				sort | \
+				column -t -s $'\t'
+
+			;;
+		clparse)
+			local region=$(echo $3 | cut -d '-' -f2)
+			local vnet_subnet_pair=$(python3 ~/scripts/pyscripts/sc_template_parser.py ./fleet-documents/clusters/$region/$3.yaml)
+			echo "vnet_subnet_pair: $vnet_subnet_pair"
+			;;
+		clreplace)
+			local region=$(echo $4 | cut -d '-' -f2)
+			local vnet_subnet_pair=$(python3 ~/scripts/pyscripts/sc_template_parser.py ./fleet-documents/clusters/$region/$4.yaml)
+			python3 ~/scripts/pyscripts/sc_template_parser.py $3 $vnet_subnet_pair
+			if [ $? -ne 0 ]; then
+				echo "Failed to replace cluster template!"
+				return
+			fi
+			git rm fleet-documents/clusters/$region/$4.yaml
+			echo "vnet_subnet_pair used: $vnet_subnet_pair"
+			;;
+		clnew)
+			python3 ~/scripts/pyscripts/sc_template_parser.py ${@:3}
+			;;
+		drain)
+			if [ -z "$3" ]; then
+				echo "help: k - drain <std-cluster-name>"
+				return
+			fi
+
+			echo -en "${YELLOW}Enter ${RED} cluster name ${YELLOW} to drain: $DEFAULTCOLOR" >&2
+			read _cluster_name
+			if [ "$_cluster_name" != "$3" ]; then
+				echo "Cluster name mismatch! Expected: $3, got: $_cluster_name"
+				return
+			fi
+			
+			echo "kubectl $kube_config patch cl $3 --type merge -p '{\"status\":{\"runtimeStatus\":{\"clusterState\":\"Drain\",\"clusterSubstate\":\"Degraded\",\"clusterStateOverride\":true}}}' --subresource status" >&2
+			kubectl $kube_config patch cl $3 --type merge -p '{"status":{"runtimeStatus":{"clusterState":"Drain","clusterSubstate":"Degraded","clusterStateOverride":true}}}' --subresource status
+			;;
+		ds|drain-status)
+			if [ -z "$3" ]; then
+				kubectl $kube_config get cl | grep -i drain
+				echo "help: k - ds[drain-status] <std-cluster-name>"
+				return
+			fi
+
+			echo 
+			echo -e "${YELLOW}Cluster status: $DEFAULTCOLOR" >&2
+			echo "kubectl $kube_config get cl $3" >&2
+			kubectl $kube_config get cl $3 ${OPT_SORT_BY}
+
+			echo
+			echo -e "${YELLOW}Applications marked for reprocessing: $DEFAULTCOLOR" >&2
+			echo "kubectl $kube_config get app -A -o=custom-columns='Namespace:.metadata.namespace,Name:.metadata.name,Annotations:.metadata.annotations.microsoft-falcon\.net/reprocess-application' | grep $3" >&2
+			kubectl $kube_config get app -A -o=custom-columns='Namespace:.metadata.namespace,Name:.metadata.name,Annotations:.metadata.annotations.microsoft-falcon\.net/reprocess-application' | grep $3
+
+			echo
+			echo -e "${YELLOW}Stale manifestworks: $DEFAULTCOLOR" >&2
+			echo "kubectl $kube_config -n std-cluster-$3 get manifestwork -l microsoft-falcon.net/is-stale-manifest=true" >&2
+			kubectl $kube_config -n std-cluster-$3 get manifestwork -l microsoft-falcon.net/is-stale-manifest=true ${OPT_SORT_BY}
+
+			echo
+			echo -e "${YELLOW}Manifestworks managed by scheduler: $DEFAULTCOLOR" >&2
+			echo "kubectl $kube_config -n std-cluster-$3 get manifestwork -l microsoft-falcon.net/managed-by=scheduler | grep -v falcon-core | grep -v clusterfleet" >&2
+			local _output=$(kubectl $kube_config -n std-cluster-$3 get manifestwork -l microsoft-falcon.net/managed-by=scheduler ${OPT_SORT_BY} | grep -v falcon-core | grep -v clusterfleet)
+			echo "${_output}"
+
+			# echo "${_output}" | head -n 1  |cut -d ' ' -f1 | tr '\n' ' '
+			;;
 		--)
 			kpresource ${1} ${@:3}
 			return
@@ -155,21 +246,25 @@ function kpverb()
 				return
 			fi
 
-			${SCRIPTDIR}/../k8s/resource_commands.sh $1 get ${@:3}
+			${SCRIPTDIR}/../k8s/resource_commands.sh $INPUT_COMMAND_ARGS
 			;;
 		describe|desc)
 			if [[ -z "$3" ]]; then
 				echo "describe: k <ns> [describe|desc] <resource> [*<pattern>] [<nodename>] [-code|-less default => -owide]"
 				return
 			fi			
-			${SCRIPTDIR}/../k8s/resource_commands.sh $1 describe $3 $4
+			read -ra INPUT_COMMAND_ARGS_LIST <<< "$INPUT_COMMAND_ARGS"
+			# echo "${INPUT_COMMAND_ARGS_LIST[@]:0:1} describe ${INPUT_COMMAND_ARGS_LIST[@]:2}"
+			${SCRIPTDIR}/../k8s/resource_commands.sh ${INPUT_COMMAND_ARGS_LIST[@]:0:1} describe ${INPUT_COMMAND_ARGS_LIST[@]:2}
 			;;
 		logs)
 			if [[ -z "$3" ]]; then
 				echo "logs    : k <ns> logs <pod-name-pattern> [search-string-pattern] [-f]"
 				return
 			fi
-			${SCRIPTDIR}/../k8s/load_logs.sh $given_namespace ${@:3}
+			read -ra INPUT_COMMAND_ARGS_LIST <<< "$INPUT_COMMAND_ARGS"
+			# echo "${INPUT_COMMAND_ARGS_LIST[@]:0:1}" get logs "${INPUT_COMMAND_ARGS_LIST[@]:2}"
+			${SCRIPTDIR}/../k8s/load_logs.sh ${INPUT_COMMAND_ARGS_LIST[@]:0:1} logs - ${INPUT_COMMAND_ARGS_LIST[@]:2}
 			;;
 		exec)
 			if [[ -z "$3" ]]; then
@@ -186,16 +281,71 @@ function kpverb()
 				kpresource $1 exec -it $3 ${@:4}
 			fi
 			;;
-		df)
-			${SCRIPTDIR}/../fleet/datafolder_objects.sh $1 $3
+		df|datafolder)
+			local folder_list=${@:3}
+			for folder in $folder_list; do
+				${SCRIPTDIR}/../fleet/datafolder_objects.sh $OPT_NAMESPACE $folder
+			done
 			;;
+		fdf|fleetdf|fleetdatafolders)
+			case $3 in
+			cl)
+				folders_names=$(kubectl ${kube_config} -n std-cluster-$4 get fleetdatafolders | grep $5 | cut -d ' ' -f1 | tr '\n' ' ')
+				# echo "folders_names: $folders_names"
+				# echo "kubectl ${kube_config} -n std-cluster-$4 get fleetdatafolders ${folders_names} -o json"
+				kubectl ${kube_config} -n std-cluster-$4 get fleetdatafolders ${folders_names} -o json | \
+				{
+				echo -e "FolderName\tTemplateHash\tVersion\tPaused\tTotalPods\tUpdatedPods\tAvailablePods\tDeploymentName\tName"
+				jq -r '.items |
+					sort_by(.status.availablePods) |
+					.[]  |
+					.spec.template.folderName as $foldername |
+					.metadata.annotations["data.falcon.io/template-hash"] as $templatehash |
+					.metadata.labels["data.falcon.io/datadeployment-name"] as $deplymentname |
+					.spec.template.version as $version |
+					.spec.paused as $paused |
+					.status.totalPods as $totalpods |
+					.status.updatedPods as $updatedpods |
+					.status.availablePods as $availablepods |
+					.metadata.name as $objName |
+					[$foldername, $templatehash, $version, $paused, $totalpods, $updatedpods, $availablepods, $deplymentname, $objName] | @tsv'
+				} | sort | column -t -s $'\t'
+				;;
+			fdn|dn|folder)
+				kubectl ${kube_config} get fleetdatafolders -l "data.falcon.io/datadeployment-name=$4" -A -o json | \
+				{
+				echo -e "ClusterNS\tName\tTemplateHash\tVersion\tPaused\tTotalPods\tUpdatedPods\tAvailablePods\tFolderName"
+				jq -r '.items |
+					sort_by(.status.availablePods) |
+					.[]  |
+					.spec.template.folderName as $folderName |
+					.metadata.name as $objName |
+					.metadata.namespace as $objNamespace |
+					.metadata.annotations["data.falcon.io/template-hash"] as $templatehash |
+					.spec.template.version as $version |
+					.spec.paused as $paused |
+					.status.totalPods as $totalpods |
+					.status.updatedPods as $updatedpods |
+					.status.availablePods as $availablepods |
+					[$objNamespace, $objName, $templatehash, $version, $paused, $totalpods, $updatedpods, $availablepods, $folderName] | @tsv'
+				} | column -t -s $'\t'
+				;;
+			esac	
+
+			# kubectl ${kube_config} -n std-cluster-$3 get fleetdatafolders $folders_names -o jsonpath='{.metadata.annotations.data\.falcon\.io\/template-hash} {.spec.template.version} {.spec.template.folderName}' | sort |  column -t -s $'\t'
+			# for folder in $folders_names; do
+			# 	echo "kubectl ${kube_config} -n std-cluster-$3 get fleetdatafolders $folder"
+			# 	kubectl ${kube_config} -n std-cluster-$3 get fleetdatafolders $folder -o jsonpath='{.metadata.annotations.data\.falcon\.io\/template-hash} {.spec.template.version} {.spec.template.folderName}' | sort |  column -t -s $'\t'
+			# done
+			;;
+
 		delete)
 			if [ -z "$3" ]; then
 				echo "delete  : k <ns> delete <resource> [< node-name|- >] [pattern]"
 				return
 			fi
 			confirm_on_kubectl_crud_operation $@
-			${SCRIPTDIR}/../k8s/delete_resource.sh $1 ${@:3}
+			${SCRIPTDIR}/../k8s/delete_resource.sh $INPUT_COMMAND_ARGS
 			;;
 		restart)
 			if [ -z "$3" ] || [ -z "$4" ] ; then
@@ -209,10 +359,10 @@ function kpverb()
 						echo "Cannot use production context to restart dev components!"
 						exit 0
 					fi
-					kubectl $kube_config $_ns rollout restart deployment scheduler-deployment
+					kubectl $kube_config $OPT_NAMESPACE rollout restart deployment scheduler-deployment
 					;;
 				*)
-					kubectl $kube_config $_ns rollout restart $3 $4
+					kubectl $kube_config $OPT_NAMESPACE rollout restart $3 $4
 					;;
 			esac			
 			;;
@@ -229,7 +379,7 @@ function kpverb()
 						exit 0
 					fi
 					kind load docker-image scheduler --name $KIND_CONTROL_CLUSTER_NAME
-					kubectl $kube_config $_ns apply -f hack/deployments/kind-scheduler.yaml
+					kubectl $kube_config $OPT_NAMESPACE apply -f hack/deployments/kind-scheduler.yaml
 					;;
 				syncer)
 					if [ -n "$kube_config" ]; then
@@ -243,7 +393,7 @@ function kpverb()
 
 					for cluster in $cluster_list; do
 						kubectl config use-context kind-$cluster
-						kubectl $kube_config $_ns apply -f hack/deployments/kind-standardcluster.yaml
+						kubectl $kube_config $OPT_NAMESPACE apply -f hack/deployments/kind-standardcluster.yaml
 					done
 					kubectl config use-context kind-$KIND_CONTROL_CLUSTER_NAME
 					;;
@@ -252,8 +402,8 @@ function kpverb()
 						echo "Cannot use production context to apply dev components!"
 						exit 0
 					fi
-					echo "kubectl $kube_config $_ns apply -f ~/scripts/demo-apps/yaml/${3}.yaml" >&2
-					kubectl $kube_config $_ns apply -f ~/scripts/demo-apps/yaml/${3}.yaml
+					echo "kubectl $kube_config $OPT_NAMESPACE apply -f ~/scripts/demo-apps/yaml/${3}.yaml" >&2
+					kubectl $kube_config $OPT_NAMESPACE apply -f ~/scripts/demo-apps/yaml/${3}.yaml
 					;;
 				*)
 					kpresource $@
@@ -261,8 +411,10 @@ function kpverb()
 			esac
 			;;
 		clsub|subscription)
-			echo "kubectl $kube_config $_ns get cl -o custom-columns='NAME:.metadata.name,SUBSCRIPTION_ID:.spec.properties.subscriptionId'" >&2
-			local _output=$(kubectl $kube_config $_ns get cl -o custom-columns='NAME:.metadata.name,SUBSCRIPTION_ID:.spec.properties.subscriptionId')
+			echo "kubectl $kube_config $OPT_NAMESPACE get cl -o json | jq -r '.items[] | [\"-n \" + .metadata.name, \"-s \" + .spec.properties.subscriptionId] | @tsv'" >&2
+			# local _output=$(kubectl $kube_config $OPT_NAMESPACE get cl -o custom-columns='NAME:.metadata.name,SUBSCRIPTION_ID:.spec.properties.subscriptionId')
+			local _output=$(kubectl $kube_config $OPT_NAMESPACE get cl -o json | jq -r '.items[] | ["-n " + .metadata.name, "-s " + .spec.properties.subscriptionId] | @tsv')
+
 			if [ -n "$3" ]; then
 				echo "$_output" | grep $3
 			else
@@ -270,8 +422,8 @@ function kpverb()
 			fi
 			;;
         fdes)
-            echo "kubectl $kube_config $_ns get endpointslices -o custom-columns='NAME:.metadata.name, SOURCECLUSTER:.metadata.labels.multicluster\.kubernetes\.io/source-cluster'" >&2
-            local _output=$(kubectl $kube_config $_ns get endpointslices -o custom-columns='NAME:.metadata.name, SOURCECLUSTER:.metadata.labels.multicluster\.kubernetes\.io/source-cluster')
+            echo "kubectl $kube_config $OPT_NAMESPACE get endpointslices -o custom-columns='NAME:.metadata.name, SOURCECLUSTER:.metadata.labels.multicluster\.kubernetes\.io/source-cluster'" >&2
+            local _output=$(kubectl $kube_config $OPT_NAMESPACE get endpointslices -o custom-columns='NAME:.metadata.name, SOURCECLUSTER:.metadata.labels.multicluster\.kubernetes\.io/source-cluster')
             if [ -n "$3" ]; then
                 echo "$_output" | grep $3
             else
@@ -298,12 +450,10 @@ function kpverb()
 
 function _kpnamespace()
 {
-	local _namespace=$(get_namespace $1)
-	local _filter=""
-	case $_namespace in
+	case $1 in
 		all)
 			if [[ -z "$2" ]]; then
-				echo "help: k all [pattern]"
+				echo "help: k all <resource> [pattern]"
 				exit 1
 			fi
 
@@ -324,9 +474,11 @@ function _kpnamespace()
 			echo "kubectl ${kube_config} -n submariner-k8s-broker get endpointslices " >&2
 			;;
 		*)
-			kpverb $_namespace ${@:2}
+			kpverb $@
 			;;
 	esac
 }
 
+set_common_options "$@"
+set -- "${POST_PARSE_ARGS[@]}"
 _kpnamespace $@

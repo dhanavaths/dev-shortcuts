@@ -67,7 +67,7 @@ def _main(file_path):
     if not app_name:
         raise Exception('Unable to determine the name for app')
 
-    file_name = file_path.rsplit('/', 1)[-1] + '.yaml'
+    file_name = file_path.rsplit('/', 1)[-1] + '_app.yaml'
     output_file_path = os.path.join('/tmp', file_name)
 
     application_document = {
@@ -98,11 +98,12 @@ def _main(file_path):
     for doc in doc_list:
         application_document['spec']['workload'].append({'manifest': doc})
     _dump_template(output_file_path, application_document)
+    print(output_file_path)
 
 if __name__ == '__main__':
     print(sys.argv)
     if len(sys.argv) < 2:
-        print("Usage: python transform_yaml_for_local_kind.py <file_path>")
+        print("Usage: python convert_to_application.py <file_path>")
         sys.exit(1)
     else:
         _main(sys.argv[1])

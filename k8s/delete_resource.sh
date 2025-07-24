@@ -3,12 +3,10 @@ SCRIPTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 source "${SCRIPTDIR}/../shared/runtime_utils.sh"
 source "${SCRIPTDIR}/../shared/colors.sh"
 
-# # # k - get nodes -l "kubernetes.azure.com/agentpool=gen05,scheduler.clusterfleet.io/ready=false"
-# reset namespace
-namespace="${1}" && [ "$namespace" = "-" ] && namespace="" || namespace="-n $namespace"
-resource_type=$2
-glob_pattern="${3}" && [ "$glob_pattern" = "-" ] && glob_pattern=""
-node_filter=$4
+# k - delete <resource-type> resource
+set_common_options "$@"
+set -- "${POST_PARSE_ARGS[@]}"
+resource_type=$3
 
 if [ -z "$resource_type" ]; then
   echo "Resource type is required."
@@ -17,14 +15,16 @@ fi
 
 function _main() {
 
-  if [ -n "$node_filter" ]; then
-    resource_list=$(kubectl $kube_config $namespace get $resource_type --field-selector "spec.nodeName=${node_filter}"  -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n')
+  if [ -n "${OPT_NODE_NAME_SELECTOR}" ]; then
+    resource_list=$(kubectl $kube_config $OPT_NAMESPACE get $resource_type ${OPT_NODE_NAME_SELECTOR} -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n')
+  elif [ -n "${OPT_RESOURCE_NAME}" ]; then
+    resource_list=$(kubectl $kube_config $OPT_NAMESPACE get $resource_type ${OPT_RESOURCE_NAME} -o jsonpath='{.metadata.name}' | tr ' ' '\n')
   else
-    resource_list=$(kubectl $kube_config $namespace get $resource_type -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n')
+    resource_list=$(kubectl $kube_config $OPT_NAMESPACE get $resource_type -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n')
   fi
 
-  if [ -n "$glob_pattern" ]; then
-    resource_list=$(echo "$resource_list" | grep -i -- "$glob_pattern" | nl -v 0)
+  if [ -n "${OPT_RESOURCE_NAME_PATTERN}" ]; then
+    resource_list=$(echo "$resource_list" | grep -i -- "$OPT_RESOURCE_NAME_PATTERN" | nl -v 0)
   else
     resource_list=$(echo "$resource_list" | nl -v 0)
   fi
@@ -44,7 +44,7 @@ function _main() {
       read confirmation_resource_name
       echo "$RESOURCE_LIST_SELECTED_NAME"
       if [ "$RESOURCE_LIST_SELECTED_NAME" = "$confirmation_resource_name" ]; then
-        kubectl $kube_config $namespace delete $resource_type $confirmation_resource_name
+        kubectl $kube_config $OPT_NAMESPACE delete $resource_type $confirmation_resource_name
       else
         echo "Invalid resource name entered to confirm the deletion."
       fi

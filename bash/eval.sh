@@ -6,7 +6,7 @@ source "${SCRIPTDIR}/../shared/utils.sh"
 function show_help() {
 	if [ -z "$2" ]; then
 		echo "commands format: <l|k> <namespace> <verb> <resource> [resource_name] [options]"
-		execute_script_local_context ${SCRIPTDIR}/../kubectl/commands.sh - help
+		execute_script_with_local_context ${SCRIPTDIR}/../kubectl/commands.sh - help
 		exit 0
 	fi
 }
@@ -28,14 +28,14 @@ function execute_script()
     ${script_path} $namespace ${@:3}
 }
 
-function execute_script_prod_context()
+function execute_script_with_prod_context()
 {
     set_prod_kube_cofig
     execute_script $@
     reset_kube_cofig
 }
 
-function execute_script_local_context()
+function execute_script_with_local_context()
 {
     reset_kube_cofig
     execute_script $@
@@ -46,20 +46,20 @@ function handle_prod_kube_command()
 {
     case $1 in
 		kuc)
-			execute_script_prod_context ${SCRIPTDIR}/../kubectl/kube_context.sh - use-context ${@:2}
+			execute_script_with_prod_context ${SCRIPTDIR}/../kubectl/kube_context.sh - use-context ${@:2}
 			;;
 		kgc)
-			execute_script_prod_context ${SCRIPTDIR}/../kubectl/kube_context.sh - get-contexts ${@:2}
+			execute_script_with_prod_context ${SCRIPTDIR}/../kubectl/kube_context.sh - get-contexts ${@:2}
 			;;
 		kdc)
-			execute_script_prod_context ${SCRIPTDIR}/../kubectl/kube_context.sh - delete-context ${@:2}
+			execute_script_with_prod_context ${SCRIPTDIR}/../kubectl/kube_context.sh - delete-context ${@:2}
 			;;
 		dlkube)
-			execute_script_prod_context ${SCRIPTDIR}/../kubectl/download_kube.sh ${@:2}
+			execute_script_with_prod_context ${SCRIPTDIR}/../kubectl/download_kube.sh ${@:2}
 			;;
 		*)
 			show_help $@
-			execute_script_prod_context ${SCRIPTDIR}/../kubectl/commands.sh $@
+			execute_script_with_prod_context ${SCRIPTDIR}/../kubectl/commands.sh $@
 			;;
 	esac
 }
@@ -70,10 +70,10 @@ function handle_local_k_command() {
 
 	case $1 in
 		kuc)
-			execute_script_local_context ${SCRIPTDIR}/../kubectl/kube_context.sh - use-context ${@:2}
+			execute_script_with_local_context ${SCRIPTDIR}/../kubectl/kube_context.sh - use-context ${@:2}
 			;;
 		kgc)
-			execute_script_local_context ${SCRIPTDIR}/../kubectl/kube_context.sh - get-contexts ${@:2}
+			execute_script_with_local_context ${SCRIPTDIR}/../kubectl/kube_context.sh - get-contexts ${@:2}
 			;;
 		krc)
 			kind get clusters | awk '{}{print "kind export kubeconfig --name " $$0}{}' | sh
@@ -96,7 +96,7 @@ function handle_local_k_command() {
 
 
 		delfinalizers|df)
-			execute_script_local_context ${SCRIPTDIR}/../k8s/remove_finalizers.sh
+			execute_script_with_local_context ${SCRIPTDIR}/../k8s/remove_finalizers.sh
 			;;
 		load-image|li)
 			read -p "Kind cluster name (Enter 'cc' for current cluster): " KIND_CLUSTER_NAME
@@ -115,12 +115,13 @@ function handle_local_k_command() {
 			;;
 		*)
 			show_help $@
-			execute_script_local_context ${SCRIPTDIR}/../kubectl/commands.sh $@
+			execute_script_with_local_context ${SCRIPTDIR}/../kubectl/commands.sh $@
 			;;
 	esac
 }
 
 function _main() {
+	echo -e "\033[1;33m`date`\033[0m" >&2
 	case $1 in
 		_git)
 			${SCRIPTDIR}/../git/commands.sh ${@:2}
