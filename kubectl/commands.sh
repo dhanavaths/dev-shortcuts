@@ -160,13 +160,13 @@ function kpverb()
 			;;
 		clparse)
 			local region=$(echo $3 | cut -d '-' -f2)
-			local vnet_subnet_pair=$(python3 ~/scripts/pyscripts/sc_template_parser.py ./fleet-documents/clusters/$region/$3.yaml)
+			local vnet_subnet_pair=$(python3 ~/$CODE_GIT_REPO_NAME/pyscripts/sc_template_parser.py ./fleet-documents/clusters/$region/$3.yaml)
 			echo "vnet_subnet_pair: $vnet_subnet_pair"
 			;;
 		clreplace)
 			local region=$(echo $4 | cut -d '-' -f2)
-			local vnet_subnet_pair=$(python3 ~/scripts/pyscripts/sc_template_parser.py ./fleet-documents/clusters/$region/$4.yaml)
-			python3 ~/scripts/pyscripts/sc_template_parser.py $3 $vnet_subnet_pair
+			local vnet_subnet_pair=$(python3 ~/$CODE_GIT_REPO_NAME/pyscripts/sc_template_parser.py ./fleet-documents/clusters/$region/$4.yaml)
+			python3 ~/$CODE_GIT_REPO_NAME/pyscripts/sc_template_parser.py $3 $vnet_subnet_pair
 			if [ $? -ne 0 ]; then
 				echo "Failed to replace cluster template!"
 				return
@@ -175,7 +175,7 @@ function kpverb()
 			echo "vnet_subnet_pair used: $vnet_subnet_pair"
 			;;
 		clnew)
-			python3 ~/scripts/pyscripts/sc_template_parser.py ${@:3}
+			python3 ~/$CODE_GIT_REPO_NAME/pyscripts/sc_template_parser.py ${@:3}
 			;;
 		drain)
 			if [ -z "$3" ]; then
@@ -402,8 +402,8 @@ function kpverb()
 						echo "Cannot use production context to apply dev components!"
 						exit 0
 					fi
-					echo "kubectl $kube_config $OPT_NAMESPACE apply -f ~/scripts/demo-apps/yaml/${3}.yaml" >&2
-					kubectl $kube_config $OPT_NAMESPACE apply -f ~/scripts/demo-apps/yaml/${3}.yaml
+					echo "kubectl $kube_config $OPT_NAMESPACE apply -f ~/$CODE_GIT_REPO_NAME/demo-apps/yaml/${3}.yaml" >&2
+					kubectl $kube_config $OPT_NAMESPACE apply -f ~/$CODE_GIT_REPO_NAME/demo-apps/yaml/${3}.yaml
 					;;
 				*)
 					kpresource $@

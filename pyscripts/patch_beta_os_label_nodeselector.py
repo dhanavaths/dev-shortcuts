@@ -100,7 +100,7 @@ def patch_apps():
                 print(f"Error patching app {namespace}/{app_name}: {result.stderr}")
 
 if __name__ == "__main__":
-    # python3 ~/scripts/pyscripts/patch_beta_os_label_nodeselector.py
+    # python3 ~/dev-shortcuts/pyscripts/patch_beta_os_label_nodeselector.py
     # Get the list of applications
     print("Starting script...")
     ensure_directories()

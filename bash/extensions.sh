@@ -24,10 +24,12 @@ function bashrc()
 }
 
 
-function publishscripts() {
-	local _scriptsAbsPath=$(readlink -f "${SCRIPTDIR}/../../scripts")
-	_=$(cd ${_scriptsAbsPath}/../; zip -r /tmp/scripts.zip scripts)
-	rsync -av --exclude='.git' "${_scriptsAbsPath}" /mnt/q/
+function publishshortcuts() {
+	local repoName="dev-shortcuts"
+	local _shortcutsAbsPath=$(readlink -f "${SCRIPTDIR}/../../${repoName}")
+	_=$(cd ${_shortcutsAbsPath}/../; zip -r /tmp/${repoName}.zip ${repoName})
+	rsync -av --exclude='.git' "${_shortcutsAbsPath}" /mnt/q/
+	cp /tmp/${repoName}.zip /mnt/q/${repoName}/${repoName}.zip
 }
 
 function execute_dev_command() {

@@ -5,6 +5,7 @@ EXPLORER_COMPATIBLE_WORKSPACE_DIR=""
 prod_kube_config_file_path=""
 WSL_WORKSPACE_DIR=""
 WINDOWS_WORKSPACE_DIR=""
+CODE_GIT_REPO_NAME="dev-shortcuts"
 
 if [ "$MSYSTEM" = "MINGW64" ]; then
     if [ -f "/q/kube-config" ]; then

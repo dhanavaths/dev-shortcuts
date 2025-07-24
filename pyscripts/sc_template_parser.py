@@ -108,7 +108,7 @@ def _parse_template_main(file_name, print_summary=False):
 cluster_ids = {}
 
 def gen_cluster_ids(cluster_count):
-    command = "~/scripts/kubectl/k_wrapper.sh - get cl | grep -v NAME | grep -v kubectl | cut -d' ' -f1 | cut -d'-' -f3"
+    command = "~/dev-shortcuts/kubectl/k_wrapper.sh - get cl | grep -v NAME | grep -v kubectl | cut -d' ' -f1 | cut -d'-' -f3"
     result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if result.returncode != 0:
         os._exit(1)
@@ -163,7 +163,7 @@ def _generate_cluster_documents(file_name, subnet_config_list):
 
 if __name__ == '__main__':
     print(f'args: {sys.argv}', file=sys.stderr)
-    # python3 ~/scripts/pyscripts/sc_template_parser.py EUS2-2.03.000.yaml 03:3
+    # python3 ~/dev-shortcuts/pyscripts/sc_template_parser.py EUS2-2.03.000.yaml 03:3
     if len(sys.argv) > 2:
         _generate_cluster_documents(sys.argv[1], sys.argv[2:])
     else:
