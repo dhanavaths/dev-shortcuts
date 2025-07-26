@@ -77,6 +77,7 @@ OPT_VSCODE_MODE=""
 INPUT_COMMAND_ARGS=""
 POST_PARSE_ARGS=""
 OPT_LABEL_SELECTOR_GIVEN=""
+OPT_LANGUAGE_RUNTIME=""
 
 function set_common_options() {
   INPUT_COMMAND_ARGS="$@"
@@ -139,6 +140,14 @@ function set_common_options() {
         args+=("$2")
         shift 2
         OPT_LABEL_SELECTOR_GIVEN="true"
+        ;;
+      -go)
+        OPT_LANGUAGE_RUNTIME="go"
+        shift
+        ;;
+      -net)
+        OPT_LANGUAGE_RUNTIME="dotnet"
+        shift
         ;;
       *)
         args+=("$1")

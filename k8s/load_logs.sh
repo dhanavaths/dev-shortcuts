@@ -3,14 +3,15 @@ SCRIPTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 source "${SCRIPTDIR}/../shared/runtime_utils.sh"
 set_common_options "$@"
 set -- "${POST_PARSE_ARGS[@]}"
-# for arg in "$@"; do
-#   echo "arg: $arg"
-# done
+for arg in "$@"; do
+  echo "arg: $arg"
+done
 # namespace="${1}" && [ "$namespace" = "-" ] && namespace="" || namespace="-n $namespace"
 var_arguments="${@:5}"
+echo "var_arguments: $var_arguments"
 resource_list=""
 
-_log_format='"\u001b[32m[\(.time)]\u001b[0m\u001b[34m[\(.level)]\u001b[0m \u001b[37m\(.msg)\u001b[0m \u001b[33m[\(.file)]\u001b[0m \u001b[90m[\(.func)]\u001b[0m"'
+_go_runtime_log_format='try "\u001b[32m[\(.time)]\u001b[0m\u001b[34m[\(.level)]\u001b[0m \u001b[37m\(.msg)\u001b[0m \u001b[33m[\(.file)]\u001b[0m \u001b[90;2m[\(.func | split("/")[-1])]\u001b[0m" catch empty'
 
 function _fetch_pod_logs() {
   if [ "$1" = "" ]; then
@@ -18,14 +19,20 @@ function _fetch_pod_logs() {
   fi
   echo "kubectl $kube_config $OPT_NAMESPACE logs $1 $var_arguments" >&2
 
-  if [ -n "$search_pattern" ]; then
-    kubectl $kube_config $OPT_NAMESPACE logs $1 $var_arguments | jq -r "$_log_format" | grep -i -E "$search_pattern" 2>/dev/null
+  if [ -n "$OPT_SEARCH_PATTERN" ]; then
+    if [ "$OPT_LANGUAGE_RUNTIME" = "go" ]; then
+      kubectl $kube_config $OPT_NAMESPACE logs $1 $var_arguments | tail -n +2 | jq -r "$_go_runtime_log_format" | grep -i -E -- "$OPT_SEARCH_PATTERN" 2>/dev/null
+    else
+      kubectl $kube_config $OPT_NAMESPACE logs $1 $var_arguments | grep -i -E -- "$OPT_SEARCH_PATTERN" | sed 's/\(Message\)/\x1b[1;36m\1\x1b[0m/g' 2>/dev/null
+    fi
   else
-    kubectl $kube_config $OPT_NAMESPACE logs $1 $var_arguments | jq -r "$_log_format" 2>/dev/null
-  fi
-
-  if [ $? -ne 0 ]; then
-    kubectl $kube_config $OPT_NAMESPACE logs $1 $var_arguments
+    if [ "$OPT_LANGUAGE_RUNTIME" = "go" ]; then
+      kubectl $kube_config $OPT_NAMESPACE logs $1 $var_arguments | jq -r "$_go_runtime_log_format" 2>/dev/null
+    elif [ "$OPT_LANGUAGE_RUNTIME" = "dotnet" ]; then
+      kubectl $kube_config $OPT_NAMESPACE logs $1 $var_arguments | sed 's/\(Message\)/\x1b[1;34m\1\x1b[0m/g' 
+    else
+      kubectl $kube_config $OPT_NAMESPACE logs $1 $var_arguments 2>/dev/null
+    fi
   fi
   echo
 }

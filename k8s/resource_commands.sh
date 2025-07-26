@@ -10,6 +10,10 @@ resource_kind=$3
 var_arguments=${@:5}
 resource_list=""
 
+if [ "$resource_verb" != "get" ]; then
+  OPT_OUTPUT_FORMAT=""
+fi
+
 function _fetch_object() {
   if [ "$1" = "" ]; then
       echo "Invalid input/no objects found."
@@ -38,8 +42,11 @@ function _handle_user_input() {
 
 function exit_if_futher_object_lookup_not_required() {
   exit_on_empty_resource_list
-  if [ "$resource_verb" = "get" ] && [ -z "${OPT_OUTPUT_FORMAT}" ]; then
-    echo "${OPT_OUTPUT_FORMAT}"
+  if [ "$resource_verb" != "get" ]; then
+    return
+  fi
+
+  if [ -z "${OPT_OUTPUT_FORMAT}" ]; then
     exit 0
   fi
 
