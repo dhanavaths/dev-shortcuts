@@ -3,12 +3,11 @@ SCRIPTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 source "${SCRIPTDIR}/../shared/runtime_utils.sh"
 set_common_options "$@"
 set -- "${POST_PARSE_ARGS[@]}"
-for arg in "$@"; do
-  echo "arg: $arg"
-done
+# for arg in "$@"; do
+#   echo "arg: $arg"
+# done
 # namespace="${1}" && [ "$namespace" = "-" ] && namespace="" || namespace="-n $namespace"
 var_arguments="${@:5}"
-echo "var_arguments: $var_arguments"
 resource_list=""
 
 _go_runtime_log_format='try "\u001b[32m[\(.time)]\u001b[0m\u001b[34m[\(.level)]\u001b[0m \u001b[37m\(.msg)\u001b[0m \u001b[33m[\(.file)]\u001b[0m \u001b[90;2m[\(.func | split("/")[-1])]\u001b[0m" catch empty'
