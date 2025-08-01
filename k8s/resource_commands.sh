@@ -34,25 +34,10 @@ function _fetch_object() {
 
 
 function _handle_user_input() {
-    exit_if_futher_object_lookup_not_required
+    exit_on_empty_resource_list
     select_item_from_resource_list $resource_kind
     _fetch_object $RESOURCE_LIST_SELECTED_NAME
     exit_on_single_item_in_resource_list
-}
-
-function exit_if_futher_object_lookup_not_required() {
-  exit_on_empty_resource_list
-  if [ "$resource_verb" != "get" ]; then
-    return
-  fi
-
-  if [ -z "${OPT_OUTPUT_FORMAT}" ]; then
-    exit 0
-  fi
-
-  if [ "$OPT_OUTPUT_FORMAT" == "-owide" ]; then
-    exit 0
-  fi
 }
 
 function _main() {
@@ -63,19 +48,19 @@ function _main() {
     fi
     return
   elif [[ -n "${OPT_RESOURCE_NAME_PATTERN}" ]]; then
-      echo "kubectl $kube_config $OPT_NAMESPACE get $resource_kind ${OPT_NODE_NAME_SELECTOR} -owide" >&2
-      local _output=$(kubectl $kube_config $OPT_NAMESPACE get $resource_kind ${OPT_NODE_NAME_SELECTOR} -owide | awk 'NR==1; /'"${OPT_RESOURCE_NAME_PATTERN}"'/')
+      echo "kubectl $kube_config $OPT_NAMESPACE get $resource_kind ${OPT_NODE_NAME_SELECTOR} ${OPT_SORT_BY} -owide" >&2
+      local _output=$(kubectl $kube_config $OPT_NAMESPACE get $resource_kind ${OPT_NODE_NAME_SELECTOR} ${OPT_SORT_BY} -owide | awk 'NR==1; /'"${OPT_RESOURCE_NAME_PATTERN}"'/')
       echo "$_output"
       resource_list=$(echo "$_output" | awk 'NR > 1 {print $1}' | nl -v 0)
   elif [[ -n "${OPT_RESOURCE_NAME}" ]]; then
       if [ -z "${OPT_OUTPUT_FORMAT}" ]; then
-        echo "kubectl $kube_config $OPT_NAMESPACE get $resource_kind ${OPT_RESOURCE_NAME} -owide" >&2
-        kubectl $kube_config $OPT_NAMESPACE get $resource_kind ${OPT_RESOURCE_NAME} -owide
+        echo "kubectl $kube_config $OPT_NAMESPACE get $resource_kind ${OPT_RESOURCE_NAME} ${OPT_SORT_BY} -owide" >&2
+        kubectl $kube_config $OPT_NAMESPACE get $resource_kind ${OPT_RESOURCE_NAME} ${OPT_SORT_BY} -owide
       fi
       resource_list=$(echo "${OPT_RESOURCE_NAME}" | nl -v 0)
   else
-    echo "kubectl $kube_config $OPT_NAMESPACE get $resource_kind ${OPT_NODE_NAME_SELECTOR} -owide" >&2
-    local _output=$(kubectl $kube_config $OPT_NAMESPACE get $resource_kind ${OPT_NODE_NAME_SELECTOR} -owide)
+    echo "kubectl $kube_config $OPT_NAMESPACE get $resource_kind ${OPT_NODE_NAME_SELECTOR} ${OPT_SORT_BY} -owide" >&2
+    local _output=$(kubectl $kube_config $OPT_NAMESPACE get $resource_kind ${OPT_NODE_NAME_SELECTOR} ${OPT_SORT_BY} -owide)
     echo "$_output"
     resource_list=$(echo "$_output" | awk 'NR > 1 {print $1}' | nl -v 0)
     # resource_list=$(kubectl $kube_config $OPT_NAMESPACE get $resource_kind ${OPT_NODE_NAME_SELECTOR} -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n' | nl -v 0)
