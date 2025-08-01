@@ -39,7 +39,7 @@ function _fetch_pod_logs() {
 function _handle_user_input() {
     select_item_from_resource_list "POD"
     _fetch_pod_logs $RESOURCE_LIST_SELECTED_NAME
-    exit_on_single_item_in_resource_list
+    exit_on_empty_or_single_item_in_resource_list
 }
 
 
