@@ -121,39 +121,99 @@ function kpverb()
 		chr)
 			kubectl $kube_config get chr clusterhealth-report-$3 -oyaml
 			;;
-		clm)
-			if [ -z "$3" ]; then
-				echo "kubectl $kube_config get cl -o=custom-columns=\"NAME:.metadata.name,majorersion:.metadata.labels.microsoft-falcon\.net\/cycle-majorersion\" | cut -d\" \" -f4 | sort | uniq -c" >&2
-				kubectl $kube_config get cl -o=custom-columns="NAME:.metadata.name,majorersion:.metadata.labels.microsoft-falcon\.net\/cycle-majorersion" | cut -d" " -f4 | sort | uniq -c
-				return
-			fi
-			echo "kubectl $kube_config get cl -l microsoft-falcon.net/cycle-majorersion=$3" >&2
-			kubectl $kube_config get cl -l microsoft-falcon.net/cycle-majorersion=$3 ${OPT_SORT_BY}
-			echo -e "${YELLOW}Cluster Vnet and Subnet IDs:${DEFAULTCOLOR}" >&2
-			kubectl $kube_config get cl -l microsoft-falcon.net/cycle-majorersion=$3 ${OPT_SORT_BY} -o json | \
-				jq -r '.items[] |
-				.metadata.name as $name |
-				.spec.properties.subnetResourceId as $id |
-				($id | split("/") as $parts |
-				[$parts[4], $parts[-1], $name] | @tsv)' | \
-				sort | \
-				column -t -s $'\t' 
+		clrkubeconfig)
+			local kubeContexts=$(kubectl ${kube_config} config get-contexts -o name | grep -Ev '^(cc|uc)' | tr '\n' ' ')
+			# Loop over the contexts and delete them
+			for ctx in $kubeContexts; do
+				echo "Deleting context: $ctx"
+				if [ -n "$3" ]; then
+					kubectl $kube_config config delete-context "$ctx"
+				fi
+			done
 			;;
-		clr)
-			if [ -z "$3" ]; then
-				echo "kubectl $kube_config get cl -o=custom-columns=\"NAME:.metadata.name,majorersion:.metadata.labels.microsoft-falcon\.net\/cycle-version\" | cut -d\" \" -f4 | sort | uniq -c" >&2
-				kubectl $kube_config get cl -o=custom-columns="NAME:.metadata.name,CYCLEVERSION:.metadata.labels.microsoft-falcon\.net\/cycle-version" | cut -d" " -f4 | sort | uniq -c
-				return
-			fi
-			echo "kubectl $kube_config get cl -l microsoft-falcon.net/cycle-version=$3" >&2
-			kubectl $kube_config get cl -l microsoft-falcon.net/cycle-version=$3 ${OPT_SORT_BY}
-			echo -e "${YELLOW}Cluster Vnet and Subnet IDs:${DEFAULTCOLOR}" >&2
-			kubectl $kube_config get cl -l microsoft-falcon.net/cycle-version=$3 ${OPT_SORT_BY} -o json | \
+		cl)
+			kubectl $kube_config get cl -o json | \
+				jq -r '.items[] |
+				.metadata.name as $name |
+				.spec.properties.subnetResourceId as $id |
+				.spec.properties.networkIsland as $networkIsland |
+				.spec.properties.subscriptionId as $subId |
+				($id | split("/") as $parts |
+				[$name, $parts[2], $parts[4], $networkIsland, $subId] | @tsv)' | \
+				sort | \
+				column -t -s $'\t'
+			;;
+		clvnet)
+			kubectl $kube_config get cl -o json | \
 				jq -r '.items[] |
 				.metadata.name as $name |
 				.spec.properties.subnetResourceId as $id |
 				($id | split("/") as $parts |
-				[$parts[4], $parts[-1], $name] | @tsv)' | \
+				[$name, $parts[2]] | @tsv)' | \
+				sort | \
+				column -t -s $'\t' | cut -d' ' -f3 | sort | uniq
+			;;
+		clvnetx)
+			local kubeContexts=$(kubectl ${kube_config} config get-contexts -o name  | grep ^cc | tr '\n' ' ')
+			local vnetSubscriptions=("")
+			for ctx in $kubeContexts; do
+				echo "kubectl ${kube_config} --context=$ctx get cl -o json | jq -r '.items[] | .metadata.name as \$name | .spec.properties.subnetResourceId as \$id | (\$id | split(\"/\") as \$parts | [\$name, \$parts[2]] | @tsv)'" >&2
+				local sublist=$(kubectl ${kube_config} --context=$ctx get cl -o json | jq -r '.items[] | .metadata.name as $name | .spec.properties.subnetResourceId as $id | ($id | split("/") as $parts | [$name, $parts[2]] | @tsv)' | sort | column -t -s $'\t')
+				if [ -n "$sublist" ]; then
+					while IFS=$' ' read -r name sub; do
+						# echo "Context: $ctx, clname: $name, Subscription: $sub" >&2
+						vnetSubscriptions+=("$sub")
+					done <<< "$sublist"
+				else
+					echo "No vnet subscriptions found in context: $ctx"
+				fi
+			done
+			unique_subs=$(printf "%s\n" "${vnetSubscriptions[@]}" | sort -u)
+			ps_array='@('
+			first=1
+			while IFS= read -r sub; do
+				if [[ -n "$sub" ]]; then
+					if [[ $first -eq 1 ]]; then
+						ps_array+="\"$sub\""
+						first=0
+					else
+						ps_array+=", \"$sub\""
+					fi
+				fi
+			done <<< "$unique_subs"
+			ps_array+=')'
+
+			# Output the PowerShell array
+			echo "$ps_array"
+			;;
+		clg|clr|clm)
+			local version_annotation_suffix="cycle-version"
+			if [ "$2" = "clm" ]; then
+				version_annotation_suffix="cycle-majorersion"
+			fi
+			local cycleversion="$3"
+			if [ -z "$3" ]; then
+				echo "kubectl $kube_config get cl -o=custom-columns=\"NAME:.metadata.name,majorersion:.metadata.labels.microsoft-falcon\.net\/$version_annotation_suffix,CLUSTERDEFINITION:.spec.clusterDefinition\" | cut -d\" \" -f4 | sort | uniq -c" >&2
+				local _output=$(kubectl $kube_config get cl -o=custom-columns="NAME:.metadata.name,CYCLEVERSION:.metadata.labels.microsoft-falcon\.net\/$version_annotation_suffix,CLUSTERDEFINITION:.spec.clusterDefinition")
+				echo -e "${YELLOW}Current Clusters${DEFAULTCOLOR}" >&2
+				echo "$_output" | sort >&2
+				echo -e "${YELLOW}Current cycle versions in clusters:${DEFAULTCOLOR}" >&2
+				echo "$_output" | cut -d" " -f4 | sort | uniq -c >&2
+				resource_list=$(echo "$_output" | cut -d" " -f4 | sort | uniq | nl -v 0)
+				select_item_from_resource_list "CYCLEVERSION"
+				cycleversion=$(echo "$RESOURCE_LIST_SELECTED_NAME")
+			fi
+
+			echo "kubectl $kube_config get cl -l microsoft-falcon.net/$version_annotation_suffix=$cycleversion" >&2
+			kubectl $kube_config get cl -l microsoft-falcon.net/$version_annotation_suffix=$cycleversion ${OPT_SORT_BY}
+			echo -e "${YELLOW}Cluster Vnet and Subnet IDs:${DEFAULTCOLOR}" >&2
+			kubectl $kube_config get cl -l microsoft-falcon.net/$version_annotation_suffix=$cycleversion ${OPT_SORT_BY} -o json | \
+				jq -r '.items[] |
+				.metadata.name as $name |
+				.spec.properties.subscriptionId as $subId |
+				.spec.properties.subnetResourceId as $id |
+				($id | split("/") as $parts |
+				[$parts[4], $parts[-1], $name, $subId] | @tsv)' | \
 				sort | \
 				column -t -s $'\t'
 
@@ -413,13 +473,23 @@ function kpverb()
 		clsub|subscription)
 			echo "kubectl $kube_config $OPT_NAMESPACE get cl -o json | jq -r '.items[] | [\"-n \" + .metadata.name, \"-s \" + .spec.properties.subscriptionId] | @tsv'" >&2
 			# local _output=$(kubectl $kube_config $OPT_NAMESPACE get cl -o custom-columns='NAME:.metadata.name,SUBSCRIPTION_ID:.spec.properties.subscriptionId')
-			local _output=$(kubectl $kube_config $OPT_NAMESPACE get cl -o json | jq -r '.items[] | ["-n " + .metadata.name, "-s " + .spec.properties.subscriptionId] | @tsv')
+			local _output=$(kubectl $kube_config $OPT_NAMESPACE get cl -o json | jq -r '.items[] | ["dlkube.ps1 -n " + .metadata.name, "-s " + .spec.properties.subscriptionId, " -p 1 "] | @tsv')
 
 			if [ -n "$3" ]; then
 				echo "$_output" | grep $3
 			else
 				echo "$_output"
 			fi
+			;;
+		b64)
+			base64 --decode <<< "$3" 2>/dev/null | jq .
+			;;
+		jwt)
+			TOKEN="$3"
+			echo "$TOKEN" | awk -F '.' '{print $1 "\n" $2}' | \
+			while read part; do
+				echo "$part" | base64 --decode 2>/dev/null | jq .
+			done
 			;;
         fdes)
             echo "kubectl $kube_config $OPT_NAMESPACE get endpointslices -o custom-columns='NAME:.metadata.name, SOURCECLUSTER:.metadata.labels.multicluster\.kubernetes\.io/source-cluster'" >&2

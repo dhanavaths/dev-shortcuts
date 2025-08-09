@@ -34,10 +34,8 @@ function _fetch_object() {
 
 
 function _handle_user_input() {
-    if [ -n "${OPT_RESOURCE_NAME_PATTERN}" ]; then
-      if [ "${OPT_OUTPUT_FORMAT}" == "-owide" ]; then
-        exit_on_empty_or_single_item_in_resource_list
-      fi
+    if [ "${OPT_OUTPUT_FORMAT}" == "-owide" ]; then
+      exit 0
     fi
 
     exit_on_empty_resource_list
@@ -59,7 +57,7 @@ function _main() {
       echo "$_output"
       resource_list=$(echo "$_output" | awk 'NR > 1 {print $1}' | nl -v 0)
   elif [[ -n "${OPT_RESOURCE_NAME}" ]]; then
-      if [ -z "${OPT_OUTPUT_FORMAT}" ]; then
+      if [[ -z "${OPT_OUTPUT_FORMAT}" ]] || [[ "${OPT_OUTPUT_FORMAT}" == "-owide" ]]; then
         echo "kubectl $kube_config $OPT_NAMESPACE get $resource_kind ${OPT_RESOURCE_NAME} ${OPT_SORT_BY} -owide" >&2
         kubectl $kube_config $OPT_NAMESPACE get $resource_kind ${OPT_RESOURCE_NAME} ${OPT_SORT_BY} -owide
       fi

@@ -143,6 +143,10 @@ def __print_deployment_manifest_statuses_table(data):
     _print_section_header('Manifest Statuses:')
     mw_status_table = PrettyTable()
     mw_status_table.field_names = ["Cluster", "Status", "Desired Replicas", "Current Replicas", "Avail Replicas(N)", "DES-AR(N)", "Non.Sch Replicas(N)", "SC/WL Obs.Gen", "Gen Diff", "Collision Count", "Message"]
+
+    if data['status'].get('clusters', []):
+        data['status']['clusters'].sort(key=lambda x: x['cluster'])
+
     for cluster in data['status'].get('clusters', []):
         cluster_name = cluster["cluster"]
 
@@ -275,6 +279,9 @@ def __print_daemonset_manifest_statuses_table(data):
     mw_status_table = PrettyTable()
     _print_section_header('Manifest Statuses:')
     mw_status_table.field_names = ["Cluster", "Status", "Desired", "Scheduled(N)", "Scheduled(Diff)", "Cur Scheduled", "Ready", "Available", "Mis. Scheduled", "SC/WL Obs.Gen", "Gen Diff", "Message"]
+    if data['status'].get('clusters', []):
+        data['status']['clusters'].sort(key=lambda x: x['cluster'])
+
     for cluster in data['status'].get('clusters', []):
         cluster_name = cluster["cluster"]
         if not cluster.get('manifestStatuses', []):

@@ -21,7 +21,7 @@ function select_item_from_resource_list() {
 	exit_on_empty_resource_list
   RESOURCE_LIST_COUNT=$(echo "$resource_list" | wc -l)
 	if [ -n "$1" ]; then
-	    echo "Select $1"
+	    echo -en "${YELLOW}Select $1${DEFAULTCOLOR}" >&2
     fi
 
   if [ -n "$resource_display_list" ]; then
@@ -37,7 +37,8 @@ function select_item_from_resource_list() {
       resource_number="0"
     else
       # Read user input
-      read -p "Enter row number: " resource_number
+      echo -en "${YELLOW}Enter number against ${GREEN}$1${YELLOW} (or 'q' to quit): ${DEFAULTCOLOR}" >&2
+      read resource_number
     fi
 
 
