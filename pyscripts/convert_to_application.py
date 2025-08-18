@@ -104,6 +104,7 @@ if __name__ == '__main__':
     print(sys.argv)
     if len(sys.argv) < 2:
         print("Usage: python convert_to_application.py <file_path>")
+        print("Usage: python3 convert_to_application.py <file_path>")
         sys.exit(1)
     else:
         _main(sys.argv[1])

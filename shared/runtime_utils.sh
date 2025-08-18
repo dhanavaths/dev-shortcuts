@@ -21,7 +21,7 @@ function select_item_from_resource_list() {
 	exit_on_empty_resource_list
   RESOURCE_LIST_COUNT=$(echo "$resource_list" | wc -l)
 	if [ -n "$1" ]; then
-	    echo -en "${YELLOW}Select $1${DEFAULTCOLOR}" >&2
+	    echo -e "${YELLOW}Select $1${DEFAULTCOLOR}" >&2
     fi
 
   if [ -n "$resource_display_list" ]; then
