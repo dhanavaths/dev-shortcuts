@@ -8,7 +8,7 @@ kube_config=""
 if [ "$MSYSTEM" = "MINGW64" ]; then
     # git-bash settings
     if [ -n "$prod_kube_config_file_path" ]; then
-        echo "Using customconfig file"
+        echo -n ""
     elif [ -f "/q/kube-config" ]; then
         prod_kube_config_file_path="/q/kube-config"
         WINDOWS_WORKSPACE_DIR="/q/workspace"
@@ -25,7 +25,7 @@ if [ "$MSYSTEM" = "MINGW64" ]; then
 else
     # WSL settings
     if [ -n "$prod_kube_config_file_path" ]; then
-        echo "Using customconfig file"
+        echo -n ""
     elif [ -f "/mnt/q/kube-config" ]; then
         prod_kube_config_file_path="/mnt/q/kube-config"
         WSL_WORKSPACE_DIR="${HOME}/workspace"
