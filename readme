@@ -1,1 +1,59 @@
-<TODO>
+Add following line to ~/.bashrc
+source ~/dev-shortcuts/bash/extensions.sh
+
+NOTE: change the path of dev-shortcuts to your local path
+
+
+Recommendations:
+- Store kubeconfig for production in a separate file
+- Use the default kubeconfig file for local development
+- Please refer to bash/dev-config/readme for details.
+
+Prod Commands:
+kprod <ns> <verb> [resource] [options]
+kprod <ns> <verb> [*<resource>] [options] # *<resource> applies grep on the returned resoruces to filter them out.
+
+if <ns> is not applicable:
+Pass on - for <ns>, it will pull the cluster resources
+
+if you want to run raw command:
+kprod -- [-n <ns>] <verb> [resource] [options]
+
+Local environment:
+- Replace kprod with klocal to use default kubeconfig.
+- klocal uses default kubeconfig
+- example: klocal <ns> <verb> [resource] [options]
+- klocal appropriately switches to use the default kubeconfig
+
+Options:
+| -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Option   | Long Option        | Description                                                                                                                                   |
+| -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-A`     | `--all-namespaces` | Search across all namespaces.                                                                                                                 |
+| -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-s`     | `--sort-by`        | Sort resources. <br>Accepts: `a`, `ts`, or `age` (sort by creationTimestamp), `-` (no sort), or any `.field.path`. Default: `.metadata.name`. |
+| -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-nn`    | `--node-name`      | Filter by node name. Uses Kubernetes field selector `spec.nodeName=<value>`.                                                                  |
+| -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| -p|-g|-r | `--search-pattern` | Pattern to search in logs.                                                                                                                    |
+| -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-oless` | `-less`            | Show output in `less` with `-oyaml` format.                                                                                                   |
+| -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-ocode` | `-code`            | Open output in VS Code (`code`) with `-oyaml` format.                                                                                         |
+| -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-oyaml` |                    | Output format in YAML.                                                                                                                        |
+| -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-ojson` |                    | Output format in JSON.                                                                                                                        |
+| -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-l`     |                    | Label selector. Must be in format: `-l key=value`. Cannot be used with resource name.                                                         |
+| -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-go`    |                    | Language runtime set to `go`. Used to format logs.                                                                                            |
+| -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-net`   |                    | Language runtime set to `.NET`. Used to format logs.                                                                                          |
+| -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-w`     | `--watch`          | Enable Kubernetes watch mode.                                                                                                                 |
+| -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--`     |                    | Signals that the following arguments are direct commands.                                                                                     |
+| -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+|*<pattern>|                    | Wildcard for resource name pattern (e.g., `nginx-*`).                                                                                         |
+| -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |

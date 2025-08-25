@@ -29,7 +29,7 @@ function _git_commands()
 				echo "Branch name is required" >&2
 				return
 			fi
-			git checkout -b ${GIT_BRANCH_USERNAME_PREFIX}/$2
+			git checkout -b ${DEVOPS_NEW_BRANCH_USERNAME_PREFIX}/$2
 			;;
 		d)
 			git diff

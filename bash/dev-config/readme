@@ -1,0 +1,22 @@
+Add a customconfig.sh file under the bash/dev-config directory.
+
+Copy the following code snippet into it, and set the required variables:
+if [ "$MSYSTEM" = "MINGW64" ]; then
+    prod_kube_config_file_path="/q/kube-config"
+    WINDOWS_WORKSPACE_DIR="/q/workspace"
+    EXPLORER_COMPATIBLE_WORKSPACE_DIR="Q:\\workspace"
+else
+    prod_kube_config_file_path="/mnt/q/kube-config"
+    WSL_WORKSPACE_DIR="${HOME}/workspace"
+fi
+
+DEVOPS_NEW_BRANCH_USERNAME_PREFIX=""
+
+If you want to use a Git shortcut (e.g., g), set the prefix like this:
+DEVOPS_NEW_BRANCH_USERNAME_PREFIX="<alias>"
+
+Note: If customconfig.sh is missing, bash/config.sh will set the default values.
+
+Recommendations:
+- store kubeconfig for production in a separate file
+- use the default kubeconfig file for local development
