@@ -18,5 +18,5 @@ DEVOPS_NEW_BRANCH_USERNAME_PREFIX="<alias>"
 Note: If customconfig.sh is missing, bash/config.sh will set the default values.
 
 Recommendations:
-- store kubeconfig for production is stored in a separate file
+- store kubeconfig for production in a separate file
 - use the default kubeconfig file for local development

@@ -5,7 +5,7 @@ NOTE: change the path of dev-shortcuts to your local path
 
 
 Recommendations:
-- Store kubeconfig for production is stored in a separate file
+- Store kubeconfig for production in a separate file
 - Use the default kubeconfig file for local development
 - Please refer to bash/dev-config/readme for details.
 
