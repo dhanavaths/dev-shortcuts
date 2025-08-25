@@ -47,10 +47,8 @@ function ws() {
 export PROD_KUBECTL_SHORTCUT="kube_prod"
 export LOCAL_KUBECTL_SHORTCUT="kube_local"
 
-alias k="${PROD_KUBECTL_SHORTCUT}"
-alias kube="${PROD_KUBECTL_SHORTCUT}"
-alias l="${LOCAL_KUBECTL_SHORTCUT}"
-alias kl="${LOCAL_KUBECTL_SHORTCUT}"
+alias kprod="${PROD_KUBECTL_SHORTCUT}"
+alias klocal="${LOCAL_KUBECTL_SHORTCUT}"
 
 # aliases
 alias kuc="${PROD_KUBECTL_SHORTCUT} kuc "

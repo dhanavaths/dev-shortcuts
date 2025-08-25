@@ -1,14 +1,15 @@
 #!/bin/bash
+CONFIG_SCRIPTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+source "${CONFIG_SCRIPTDIR}/dev-config/customconfig.sh" 2>/dev/null || true
+
+CODE_GIT_REPO_NAME="dev-shortcuts"
 kube_config=""
 
-EXPLORER_COMPATIBLE_WORKSPACE_DIR=""
-prod_kube_config_file_path=""
-WSL_WORKSPACE_DIR=""
-WINDOWS_WORKSPACE_DIR=""
-CODE_GIT_REPO_NAME="dev-shortcuts"
-
 if [ "$MSYSTEM" = "MINGW64" ]; then
-    if [ -f "/q/kube-config" ]; then
+    # git-bash settings
+    if [ -n "$prod_kube_config_file_path" ]; then
+        echo "Using customconfig file"
+    elif [ -f "/q/kube-config" ]; then
         prod_kube_config_file_path="/q/kube-config"
         WINDOWS_WORKSPACE_DIR="/q/workspace"
         EXPLORER_COMPATIBLE_WORKSPACE_DIR="Q:\\workspace"
@@ -22,20 +23,25 @@ if [ "$MSYSTEM" = "MINGW64" ]; then
         EXPLORER_COMPATIBLE_WORKSPACE_DIR="C:\\workspace"
     fi
 else
-    if [ -f "/mnt/q/kube-config" ]; then
+    # WSL settings
+    if [ -n "$prod_kube_config_file_path" ]; then
+        echo "Using customconfig file"
+    elif [ -f "/mnt/q/kube-config" ]; then
         prod_kube_config_file_path="/mnt/q/kube-config"
+        WSL_WORKSPACE_DIR="${HOME}/workspace"
     elif [ -f "/mnt/e/kube-config" ]; then
         prod_kube_config_file_path="/mnt/e/kube-config"
+        WSL_WORKSPACE_DIR="${HOME}/workspace"
     fi
-    WSL_WORKSPACE_DIR="${HOME}/workspace"
-
 fi
 
+# export variables
 if [ "$MSYSTEM" = "MINGW64" ]; then
     export WORKSPACE_DIR=$WINDOWS_WORKSPACE_DIR
 else
     export WORKSPACE_DIR=$WSL_WORKSPACE_DIR
 fi
-
-GIT_BRANCH_USERNAME_PREFIX="sdhanavath"
-#while true; do   nslookup kubernetesservicediscovery.falcon-core.cluster-local.microsoft-falcon.net;   sleep 1; done
+export prod_kube_config_file_path
+export DEVOPS_NEW_BRANCH_USERNAME_PREFIX
+export CODE_GIT_REPO_NAME
+export EXPLORER_COMPATIBLE_WORKSPACE_DIR
