@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: demo-app-ds-crash-test
+  namespace: clusterfleet
+spec:
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 1
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: demo-app-ds-crash-test
+  template:
+    metadata:
+      labels:
+        app: demo-app-ds-crash-test
+        test: "6"
+    spec:
+      hostNetwork: true
+      containers:
+      - args:
+          - --http-port
+          - "12012"
+          - --startup-delay
+          - "8"
+          - --fail-probes-after-seconds
+          - "60s"
+          - --fail-liveness-probe
+          - "true"
+        env:
+        - name: TIMESTAMP
+          value: "DEPLOYMENT_TIMESTAMP"
+        envFrom:
+        - configMapRef:
+            name: clusterfleet-config
+        image: demo-app:DEPLOYMENT_IMAGE_VERSION
+        name: demo-app-ds-crash-test
+        volumeMounts:
+        - mountPath: /var/run/docker.sock
+          name: docker-sock
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /keepalive
+            port: 12012
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 2
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /ready
+            port: 12012
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 2
+          successThreshold: 1
+          timeoutSeconds: 1
+        securityContext:
+          privileged: true
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      volumes:
+      - hostPath:
+          path: /var/run/docker.sock
+          type: ""
+        name: docker-sock

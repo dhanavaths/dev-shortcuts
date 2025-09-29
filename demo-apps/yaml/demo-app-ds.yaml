@@ -7,7 +7,7 @@ metadata:
   name: demo-app-ds
   namespace: clusterfleet
 spec:
-  version: "533634898"
+  version: "DEPLOYMENT_APP_VERSION"
   rolloutStrategy:
     progressiveRollout:
       progressiveRolloutWindowSize: "2"
@@ -44,11 +44,11 @@ spec:
                   - "0"
                 env:
                 - name: TIMESTAMP
-                value: "2021-09-31T14:00:14Z"
+                  value: "DEPLOYMENT_TIMESTAMP"
                 envFrom:
                 - configMapRef:
                     name: clusterfleet-config
-                image: demo-app:v007
+                image: demo-app:DEPLOYMENT_IMAGE_VERSION
                 name: demo-app-ds
                 volumeMounts:
                 - mountPath: /var/run/docker.sock

@@ -45,7 +45,7 @@ spec:
                   - "0"
                 env:
                 - name: TIMESTAMP
-                value: "2021-09-31T14:00:14Z"
+                  value: "2021-09-31T14:00:14Z"
                 envFrom:
                 - configMapRef:
                     name: clusterfleet-config

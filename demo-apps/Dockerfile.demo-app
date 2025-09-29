@@ -1,3 +1,6 @@
+FROM alpine:latest AS extended-scratch
+RUN apk add --no-cache bash curl ncurses
+
 FROM mcr.microsoft.com/oss/go/microsoft/golang:1.23 AS builder
 
 # TODO: Download docker from controlled repository
@@ -14,13 +17,14 @@ COPY go.sum .
 RUN go mod download
 
 COPY . .
-RUN make build-demo-app CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOLDFLAGS="-w -s"
+RUN --mount=type=cache,target=/go/pkg/mod,sharing=locked \
+  --mount=type=cache,target=/root/.cache/go-build,sharing=locked \
+  make build-demo-app CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOLDFLAGS="-w -s"
 
-
-FROM scratch
-
+FROM extended-scratch as final
 ENV PATH /
 COPY --from=builder /app/_output/demo-app /
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+ENV PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 ENTRYPOINT [ "/demo-app", "--http-port", "12012"]

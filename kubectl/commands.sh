@@ -326,7 +326,7 @@ function kpverb()
 			# echo "${INPUT_COMMAND_ARGS_LIST[@]:0:1}" get logs "${INPUT_COMMAND_ARGS_LIST[@]:2}"
 			${SCRIPTDIR}/../k8s/load_logs.sh ${INPUT_COMMAND_ARGS_LIST[@]:0:1} logs - ${INPUT_COMMAND_ARGS_LIST[@]:2}
 			;;
-		exec)
+		exec|x)
 			if [[ -z "$3" ]]; then
 				echo "exec    : k <ns> exec <pod-name> [ps|sh| --woth-args]"
 				return
@@ -338,7 +338,7 @@ function kpverb()
 			elif [[ "$4" = "sh" ]]; then
 				kpresource $1 exec -it $3 -- sh
 			else
-				kpresource $1 exec -it $3 ${@:4}
+				kpresource $1 exec -it $3 -- ${@:4}
 			fi
 			;;
 		df|datafolder)
