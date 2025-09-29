@@ -9,7 +9,7 @@ metadata:
   name: demo-app
   namespace: clusterfleet
 spec:
-  version: "533634904"
+  version: "DEPLOYMENT_APP_VERSION"
   rolloutStrategy:
     minAvailableReplicas: "100%"
   workload:
@@ -43,11 +43,11 @@ spec:
                   - "5"
                 env:
                 - name: TIMESTAMP
-                value: "2021-09-31T14:00:07Z"
+                value: "DEPLOYMENT_TIMESTAMP"
                 envFrom:
                 - configMapRef:
                     name: clusterfleet-config
-                image: demo-app:v007
+                image: demo-app:DEPLOYMENT_IMAGE_VERSION
                 name: demo-app
                 volumeMounts:
                 - mountPath: /var/run/docker.sock
