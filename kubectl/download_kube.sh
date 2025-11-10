@@ -22,7 +22,7 @@ fi
 
 kube_config_path=$(echo "$kube_config" | cut -d' ' -f2)
 query="curl http://localhost:7575/kubeconfig --request GET --data '{\"envname\": \"production\", \"controlclustername\": \"${cc}\", \"clustername\": \"${cl}\"}'"
-pod=$(kubectl $kube_config -n clusterfleet get pods -l "app=kubeconfig-fetcher" --context $uc-admin -o json | jq -r '.items[0].metadata.name')
+pod=$(kubectl $kube_config -n clusterfleet get pods -l "app=kubeconfig-fetcher" --context $uc-admin -o json | ${JQ_CMD} -r '.items[0].metadata.name')
 kubectl $kube_config -n clusterfleet exec -it $pod -c utility --context $uc-admin -- /bin/bash -c "$query"
 echo "Copying kubeconfig from $pod for cluster $cl"
 kubectl $kube_config cp -c utility clusterfleet/$pod:/tmp/kubeconfigs/clusters/$cl kubeconf --context $uc-admin

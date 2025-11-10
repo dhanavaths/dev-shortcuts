@@ -20,13 +20,13 @@ function _fetch_pod_logs() {
 
   if [ -n "$OPT_SEARCH_PATTERN" ]; then
     if [ "$OPT_LANGUAGE_RUNTIME" = "go" ]; then
-      kubectl $kube_config $OPT_NAMESPACE logs $1 $var_arguments | tail -n +2 | jq -r "$_go_runtime_log_format" | grep -i -E -- "$OPT_SEARCH_PATTERN" 2>/dev/null
+      kubectl $kube_config $OPT_NAMESPACE logs $1 $var_arguments | tail -n +2 | ${JQ_CMD} -r "$_go_runtime_log_format" | grep -i -E -- "$OPT_SEARCH_PATTERN" 2>/dev/null
     else
       kubectl $kube_config $OPT_NAMESPACE logs $1 $var_arguments | grep -i -E -- "$OPT_SEARCH_PATTERN" | sed 's/\(Message\)/\x1b[1;36m\1\x1b[0m/g' 2>/dev/null
     fi
   else
     if [ "$OPT_LANGUAGE_RUNTIME" = "go" ]; then
-      kubectl $kube_config $OPT_NAMESPACE logs $1 $var_arguments | jq -r "$_go_runtime_log_format" 2>/dev/null
+      kubectl $kube_config $OPT_NAMESPACE logs $1 $var_arguments | ${JQ_CMD} -r "$_go_runtime_log_format" 2>/dev/null
     elif [ "$OPT_LANGUAGE_RUNTIME" = "dotnet" ]; then
       kubectl $kube_config $OPT_NAMESPACE logs $1 $var_arguments | sed 's/\(Message\)/\x1b[1;34m\1\x1b[0m/g' 
     else

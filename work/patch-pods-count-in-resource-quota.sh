@@ -1,5 +1,5 @@
 cc=cc-wus2-gen
-mws=$(kubectl  --kubeconfig /mnt/q/kube-config get mw -l "apis.clusterfleet.io/quota-work" -A --context $cc-admin -o json | jq -r '.items[] | .metadata.name + " " + .metadata.namespace')
+mws=$(kubectl  --kubeconfig /mnt/q/kube-config get mw -l "apis.clusterfleet.io/quota-work" -A --context $cc-admin -o json | ${JQ_CMD} -r '.items[] | .metadata.name + " " + .metadata.namespace')
 IFS=$'\n' read -d '' -ra mw_array <<< "$mws"
 for mw in "${mw_array[@]}"; do
     IFS=" " read -r -a array <<< "$mw"
