@@ -118,6 +118,32 @@ function is_app_custom_subresource() {
 function kpverb()
 {
 	case $2 in
+		test-datapath)
+			# kprod xe test-datadir sharedprod-7b4cfd48fb-4snm9
+			local dataPath="C:\\pods\\datafolders\\$OPT_NAMESPACE_NAME.$3\\aplusranker-prod\\en-us\\Nets\\Darwin\\BigAnswers\\Dynamic\\ProdV4"
+			local dataPath="C:\\pods\\datafolders"
+			local nodeName=$(kubectl $kube_config $OPT_NAMESPACE get pod $3 --no-headers -o custom-columns=":.spec.nodeName")
+			kubectl $kube_config -n falcon-core get pod --field-selector spec.nodeName=$nodeName
+			local dataFetcherPodName=$(kubectl $kube_config -n falcon-core get pod --field-selector spec.nodeName=$nodeName --no-headers -o custom-columns=":metadata.name"|grep datafetcher)
+			echo "kubectl $kube_config -n falcon-core exec $dataFetcherPodName -- powershell -Command \"Test-Path '$dataPath'\""
+			kubectl $kube_config -n falcon-core exec $dataFetcherPodName -- powershell -Command "Test-Path '$dataPath'"
+			;;
+		test-datadir)
+			# kprod xe test-datadir 801d2297 "C:\datafolderroot\Data\aplusranker-xap-experiments-d7f3a0b8-597031663_container\aplusranker-xap-experiments-d7f3a0b8-597031663\en-us\Nets\Darwin\BigAnswers\Dynamic\ProdV4"
+			# kprod xe test-datadir 801d2297 "C:\pods\datafolders\xap-experiments.sharedprod-7b4cfd48fb-4snm9\aplusranker-prod\en-us\Nets\Darwin\BigAnswers\Dynamic\ProdV4"
+			local templateHash=$3
+			local testPath=$4
+			local dataDownloads=$(kubectl $kube_config $OPT_NAMESPACE get dd -l "data.falcon.io/template-hash=$templateHash" --no-headers -o custom-columns=":metadata.name")
+			echo "dataDownloads: $dataDownloads"
+			# return
+			for dd in $dataDownloads; do
+				local nodeName="${dd##*-}"
+				local dataFetcherPodName=$(kubectl $kube_config -n falcon-core get pod --field-selector spec.nodeName=$nodeName --no-headers -o custom-columns=":metadata.name"|grep datafetcher)
+				echo -e "${YELLOW}nodeName: $nodeName, dataFetcherPodName: $dataFetcherPodName, dd: ${dd}${DEFAULTCOLOR}"
+				echo "kubectl $kube_config -n falcon-core exec $dataFetcherPodName -- powershell -Command \"Test-Path '$4'\""
+				kubectl $kube_config -n falcon-core exec $dataFetcherPodName -- powershell -Command "Test-Path '$4'"
+			done
+			;;
 		chr)
 			kubectl $kube_config get chr clusterhealth-report-$3 -oyaml
 			;;
