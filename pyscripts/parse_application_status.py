@@ -44,6 +44,13 @@ def _get_ready_condition(cond_list):
 
     return 'Unknown', 'Unknown'
 
+def get_rolling_update_max_unavailable(manifest):
+    if manifest.get('spec') and manifest['spec'].get('updateStrategy') and \
+       manifest['spec']['updateStrategy'].get('rollingUpdate') and manifest['spec']['updateStrategy'].get('type') == 'RollingUpdate':
+        if manifest['spec']['updateStrategy'].get('rollingUpdate') and manifest['spec']['updateStrategy']['rollingUpdate'].get('maxUnavailable'):
+            return manifest['spec']['updateStrategy']['rollingUpdate']['maxUnavailable']
+    return ''
+
 def _parse_framework(data):
     if not data.get('status'):
         print('Status not found!')
@@ -142,8 +149,9 @@ def get_app_type(data):
 def __print_deployment_manifest_statuses_table(data):
     _print_section_header('Manifest Statuses:')
     mw_status_table = PrettyTable()
-    mw_status_table.field_names = ["Cluster", "Status", "Desired Replicas", "Current Replicas", "Avail Replicas(N)", "DES-AR(N)", "Non.Sch Replicas(N)", "SC/WL Obs.Gen", "Gen Diff", "Collision Count", "Message"]
+    mw_status_table.field_names = ["Cluster", "Status", "Desired Replicas", "Current Replicas", "Avail Replicas(N)", "AR(N)-DES", "Non.Sch Replicas(N)", "SC/WL Obs.Gen", "Gen Diff", "Collision Count", "Message"]
 
+    status_table_rows = []
     if data['status'].get('clusters', []):
         data['status']['clusters'].sort(key=lambda x: x['cluster'])
 
@@ -172,13 +180,14 @@ def __print_deployment_manifest_statuses_table(data):
             # if _add_empty_row:
             #     mw_status_table.add_row(['-'] * len(mw_status_table.field_names))    
 
-            mw_status_table.add_row([
+            status_table_rows.append([
+                cluster_name, #0
                 cluster_name if status_available == 'True' else (YELLOW_COLOR + cluster_name + DEFAULT_COLOR),
                 status_available,
                 status.get('desiredReplicas', 0),
                 status.get('replicas', 0),
                 status.get('availableNewReplicas', 0),
-                status.get('desiredReplicas', 0) - status.get('availableNewReplicas', 0),
+                status.get('availableNewReplicas', 0) - status.get('desiredReplicas', 0), #6
                 status.get('nonSchedulableNewReplicas', 0),
                 status.get('observedGeneration', 0),
                 _gen_diff,
@@ -190,6 +199,10 @@ def __print_deployment_manifest_statuses_table(data):
 
         # if _add_empty_row:
         #     mw_status_table.add_row(['-'] * len(mw_status_table.field_names))    
+
+    for row in sorted(status_table_rows, key=lambda x: (-x[6], x[0])):
+        row.pop(0)
+        mw_status_table.add_row(row)
 
     print(mw_status_table)
     print()
@@ -282,6 +295,7 @@ def __print_daemonset_manifest_statuses_table(data):
     if data['status'].get('clusters', []):
         data['status']['clusters'].sort(key=lambda x: x['cluster'])
 
+    status_table_rows = []
     for cluster in data['status'].get('clusters', []):
         cluster_name = cluster["cluster"]
         if not cluster.get('manifestStatuses', []):
@@ -310,12 +324,13 @@ def __print_daemonset_manifest_statuses_table(data):
             # if _add_empty_row:
             #     mw_status_table.add_row([' '] * len(mw_status_table.field_names))    
 
-            mw_status_table.add_row([
+            status_table_rows.append([
+                cluster_name, #0
                 cluster_name if status_available == 'True' else (YELLOW_COLOR + cluster_name + DEFAULT_COLOR),
                 status_available,
                 status.get('desiredNumberScheduled', 0),
                 status.get('updatedNumberScheduled', 0),
-                status.get('updatedNumberScheduled', 0) - status.get('desiredNumberScheduled', 0),
+                status.get('updatedNumberScheduled', 0) - status.get('desiredNumberScheduled', 0), #5
                 status.get('currentNumberScheduled', 0),
                 status.get('numberReady', 0),
                 status.get('numberAvailable', 0),
@@ -330,6 +345,10 @@ def __print_daemonset_manifest_statuses_table(data):
 
         # if _add_empty_row:
         #     mw_status_table.add_row([' '] * len(mw_status_table.field_names))    
+
+    for row in sorted(status_table_rows, key=lambda x: (-x[5], x[0])):
+        row.pop(0)
+        mw_status_table.add_row(row)
 
     print(mw_status_table)
     print(f"Clusters with status: {cl_counters}")
