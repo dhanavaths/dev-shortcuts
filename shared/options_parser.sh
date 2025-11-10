@@ -1,4 +1,5 @@
 OPT_NAMESPACE=""
+OPT_NAMESPACE_NAME=""
 OPT_ALL_NAMESPACES=""
 OPT_NODE_NAME_SELECTOR=""
 OPT_RESOURCE_NAME=""
@@ -24,6 +25,7 @@ function set_common_options() {
 
   INPUT_COMMAND_ARGS="$@"
   OPT_NAMESPACE=$(get_namespace_extended "$1")
+  OPT_NAMESPACE_NAME=$(get_namespace "$1")
 
   args=("$1")
   shift
