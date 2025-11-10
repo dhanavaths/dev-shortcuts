@@ -4,6 +4,7 @@ source "${CONFIG_SCRIPTDIR}/dev-config/customconfig.sh" 2>/dev/null || true
 
 CODE_GIT_REPO_NAME="dev-shortcuts"
 kube_config=""
+JQ_CMD="jq"
 
 if [ "$MSYSTEM" = "MINGW64" ]; then
     # git-bash settings
@@ -22,6 +23,7 @@ if [ "$MSYSTEM" = "MINGW64" ]; then
         WINDOWS_WORKSPACE_DIR="/c/workspace"
         EXPLORER_COMPATIBLE_WORKSPACE_DIR="C:\\workspace"
     fi
+    JQ_CMD="jq-win64.exe"
 else
     # WSL settings
     if [ -n "$prod_kube_config_file_path" ]; then
@@ -41,6 +43,8 @@ if [ "$MSYSTEM" = "MINGW64" ]; then
 else
     export WORKSPACE_DIR=$WSL_WORKSPACE_DIR
 fi
+
+export JQ_CMD
 export prod_kube_config_file_path
 export DEVOPS_NEW_BRANCH_USERNAME_PREFIX
 export CODE_GIT_REPO_NAME

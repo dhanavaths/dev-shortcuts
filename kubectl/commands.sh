@@ -62,7 +62,7 @@ function kpresource()
 				local _object
 				local _clusters
 				_object=$(kubectl $kube_config -n $1 get app ${_app_name} -ojson)
-				_clusters=$(echo "$_object" | jq -r '.status.clusters[].cluster')
+				_clusters=$(echo "$_object" | ${JQ_CMD} -r '.status.clusters[].cluster')
 				echo "$_clusters"
 				return
 			elif [ "$4" = "mw" ]; then
@@ -71,18 +71,18 @@ function kpresource()
 				local _clusters		
 				
 				_object=$(kubectl $kube_config -n $1 get app ${_app_name} -ojson)
-				_clusters=$(echo "$_object" | jq -r '.status.clusters[].cluster')
+				_clusters=$(echo "$_object" | ${JQ_CMD} -r '.status.clusters[].cluster')
 				if [ $? -ne 0 ]; then
 					echo "Failed to read clusters from app status"
 				fi
-				_uid=$(echo "$_object" | jq -r '.metadata.uid')
+				_uid=$(echo "$_object" | ${JQ_CMD} -r '.metadata.uid')
 				local i=0
 				local _output
 				if [ -z $_attr_path ]; then
 					kubectl $kube_config get mw -A -l "apis.clusterfleet.io/work=$_uid" -owide ${OPT_SORT_BY}
 				else
 					for cl in $_clusters; do
-						_output=$(kubectl $kube_config -n std-cluster-$cl get mw "$1.${_app_name}" -ojson ${OPT_SORT_BY} | jq -r ".items[] | $_attr_path")
+						_output=$(kubectl $kube_config -n std-cluster-$cl get mw "$1.${_app_name}" -ojson ${OPT_SORT_BY} | ${JQ_CMD} -r ".items[] | $_attr_path")
 						#echo "$cl $_output"
 					done
 				fi
@@ -183,8 +183,8 @@ function kpverb()
 			local kubeContexts=$(kubectl ${kube_config} config get-contexts -o name  | grep ^cc | tr '\n' ' ')
 			local vnetSubscriptions=("")
 			for ctx in $kubeContexts; do
-				echo "kubectl ${kube_config} --context=$ctx get cl -o json | jq -r '.items[] | .metadata.name as \$name | .spec.properties.subnetResourceId as \$id | (\$id | split(\"/\") as \$parts | [\$name, \$parts[2]] | @tsv)'" >&2
-				local sublist=$(kubectl ${kube_config} --context=$ctx get cl -o json | jq -r '.items[] | .metadata.name as $name | .spec.properties.subnetResourceId as $id | ($id | split("/") as $parts | [$name, $parts[2]] | @tsv)' | sort | column -t -s $'\t')
+				echo "kubectl ${kube_config} --context=$ctx get cl -o json | ${JQ_CMD} -r '.items[] | .metadata.name as \$name | .spec.properties.subnetResourceId as \$id | (\$id | split(\"/\") as \$parts | [\$name, \$parts[2]] | @tsv)'" >&2
+				local sublist=$(kubectl ${kube_config} --context=$ctx get cl -o json | ${JQ_CMD} -r '.items[] | .metadata.name as $name | .spec.properties.subnetResourceId as $id | ($id | split("/") as $parts | [$name, $parts[2]] | @tsv)' | sort | column -t -s $'\t')
 				if [ -n "$sublist" ]; then
 					while IFS=$' ' read -r name sub; do
 						# echo "Context: $ctx, clname: $name, Subscription: $sub" >&2
@@ -499,9 +499,9 @@ function kpverb()
 			esac
 			;;
 		clsub|subscription)
-			echo "kubectl $kube_config $OPT_NAMESPACE get cl -o json | jq -r '.items[] | [\"-n \" + .metadata.name, \"-s \" + .spec.properties.subscriptionId] | @tsv'" >&2
+			echo "kubectl $kube_config $OPT_NAMESPACE get cl -o json | ${JQ_CMD} -r '.items[] | [\"-n \" + .metadata.name, \"-s \" + .spec.properties.subscriptionId] | @tsv'" >&2
 			# local _output=$(kubectl $kube_config $OPT_NAMESPACE get cl -o custom-columns='NAME:.metadata.name,SUBSCRIPTION_ID:.spec.properties.subscriptionId')
-			local _output=$(kubectl $kube_config $OPT_NAMESPACE get cl -o json | jq -r '.items[] | ["dlkube.ps1 -n " + .metadata.name, "-s " + .spec.properties.subscriptionId, " -p 1 "] | @tsv')
+			local _output=$(kubectl $kube_config $OPT_NAMESPACE get cl -o json | ${JQ_CMD} -r '.items[] | ["dlkube.ps1 -n " + .metadata.name, "-s " + .spec.properties.subscriptionId, " -p 1 "] | @tsv')
 
 			if [ -n "$3" ]; then
 				echo "$_output" | grep $3
@@ -510,13 +510,13 @@ function kpverb()
 			fi
 			;;
 		b64)
-			base64 --decode <<< "$3" 2>/dev/null | jq .
+			base64 --decode <<< "$3" 2>/dev/null | ${JQ_CMD} .
 			;;
 		jwt)
 			TOKEN="$3"
 			echo "$TOKEN" | awk -F '.' '{print $1 "\n" $2}' | \
 			while read part; do
-				echo "$part" | base64 --decode 2>/dev/null | jq .
+				echo "$part" | base64 --decode 2>/dev/null | ${JQ_CMD} .
 			done
 			;;
         fdes)
