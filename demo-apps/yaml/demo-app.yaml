@@ -4,8 +4,6 @@ metadata:
   annotations:
     microsoft-falcon.net/clusterip-check: "disabled"
     microsoft-falcon.net/falcon-core-service: "true"
-    apis.clusterfleet.io/node-ready-not-required: "true"
-    apis.clusterfleet.io/node-user-mode-not-required: "true"
   name: demo-app
   namespace: clusterfleet
 spec:
@@ -79,6 +77,7 @@ spec:
               nodeSelector:
                 kubernetes.azure.com/mode: user
                 kubernetes.io/os: linux
+                scheduler.clusterfleet.io/ready: "true"
               dnsPolicy: ClusterFirst
               restartPolicy: Always
               volumes:

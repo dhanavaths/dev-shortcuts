@@ -10,11 +10,39 @@ spec:
   version: "DEPLOYMENT_APP_VERSION"
   rolloutStrategy:
     progressiveRollout:
-      progressiveRolloutWindowSize: "2"
+      progressiveRolloutWindowSize: "3"
       perClusterMinimumAvailableReplicasPct: 99%
       perClusterRolloutDeadlineSeconds: 150
       maxAllowedClustersPastDeadline: 10%
   workload:
+    # - manifest:
+    #     apiVersion: v1
+    #     kind: Service
+    #     metadata:
+    #       name: demo-app-ds-lb-service-2
+    #       namespace: clusterfleet
+    #       labels:
+    #         app: demo-app-ds
+    #     spec:
+    #       type: LoadBalancer
+    #       ports:
+    #       - port: 11012
+    #         targetPort: http
+    #         protocol: TCP
+    #       selector:
+    #         app: demo-app-ds
+    # - manifest:
+    #     apiVersion: v1
+    #     kind: Service
+    #     metadata:
+    #       name: demo-app-ds-clusterip-service
+    #       namespace: clusterfleet
+    #       labels:
+    #         app: demo-app-ds
+    #     spec:
+    #       type: ClusterIP
+    #       selector:
+    #         app: demo-app-ds
     - manifest:
         apiVersion: apps/v1
         kind: DaemonSet
@@ -34,7 +62,6 @@ spec:
             metadata:
               labels:
                 app: demo-app-ds
-                test: "6"
             spec:
               containers:
               - args:
@@ -50,9 +77,10 @@ spec:
                     name: clusterfleet-config
                 image: demo-app:DEPLOYMENT_IMAGE_VERSION
                 name: demo-app-ds
-                volumeMounts:
-                - mountPath: /var/run/docker.sock
-                  name: docker-sock
+                ports:
+                - containerPort: 12012
+                  name: http
+                  protocol: TCP
                 livenessProbe:
                   failureThreshold: 3
                   httpGet:
@@ -73,10 +101,16 @@ spec:
                   periodSeconds: 10
                   successThreshold: 1
                   timeoutSeconds: 2
+                resources:
+                  requests:
+                    cpu: 50m
+                    memory: 128Mi
+                  limits:
+                    cpu: 100m
+                    memory: 256Mi
+              nodeSelector:
+                kubernetes.io/os: linux
+                scheduler.clusterfleet.io/ready: "true"
+                kubernetes.azure.com/mode: "user"
               dnsPolicy: ClusterFirst
               restartPolicy: Always
-              volumes:
-              - hostPath:
-                  path: /var/run/docker.sock
-                  type: ""
-                name: docker-sock

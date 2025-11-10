@@ -36,9 +36,6 @@ spec:
             name: clusterfleet-config
         image: demo-app:DEPLOYMENT_IMAGE_VERSION
         name: demo-app-ds-crash-test
-        volumeMounts:
-        - mountPath: /var/run/docker.sock
-          name: docker-sock
         livenessProbe:
           failureThreshold: 3
           httpGet:
@@ -63,8 +60,3 @@ spec:
           privileged: true
       dnsPolicy: ClusterFirst
       restartPolicy: Always
-      volumes:
-      - hostPath:
-          path: /var/run/docker.sock
-          type: ""
-        name: docker-sock

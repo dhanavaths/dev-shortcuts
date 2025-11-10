@@ -237,7 +237,7 @@ function kpverb()
 		clnew)
 			python3 ~/$CODE_GIT_REPO_NAME/pyscripts/sc_template_parser.py ${@:3}
 			;;
-		drain)
+		cldrain)
 			if [ -z "$3" ]; then
 				echo "help: k - drain <std-cluster-name>"
 				return
@@ -253,7 +253,7 @@ function kpverb()
 			echo "kubectl $kube_config patch cl $3 --type merge -p '{\"status\":{\"runtimeStatus\":{\"clusterState\":\"Drain\",\"clusterSubstate\":\"Degraded\",\"clusterStateOverride\":true}}}' --subresource status" >&2
 			kubectl $kube_config patch cl $3 --type merge -p '{"status":{"runtimeStatus":{"clusterState":"Drain","clusterSubstate":"Degraded","clusterStateOverride":true}}}' --subresource status
 			;;
-		ds|drain-status)
+		clds|cl-drain-status)
 			if [ -z "$3" ]; then
 				kubectl $kube_config get cl | grep -i drain
 				echo "help: k - ds[drain-status] <std-cluster-name>"
@@ -434,12 +434,14 @@ function kpverb()
 			confirm_on_kubectl_crud_operation $@
 			case $3 in
 				scheduler)
+				    # make docker-scheduler ; klocal - apply scheduler
 					if [ -n "$kube_config" ]; then
 						echo "Cannot use production context to apply dev components!"
 						exit 0
 					fi
 					kind load docker-image scheduler --name $KIND_CONTROL_CLUSTER_NAME
 					kubectl $kube_config $OPT_NAMESPACE apply -f hack/deployments/kind-scheduler.yaml
+					kubectl $kube_config $OPT_NAMESPACE rollout restart deployment scheduler-deployment
 					;;
 				syncer)
 					if [ -n "$kube_config" ]; then

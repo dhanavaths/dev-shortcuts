@@ -74,9 +74,19 @@ load-demo-app-image:
 
 deploy:
 #	make -f ~/dev-shortcuts/demo-apps/Makefile deploy YAML=demo-app-ds-v0 DEPLOYMENT_IMAGE_VERSION=v007
-#	make -f ~/dev-shortcuts/demo-apps/Makefile deploy YAML=demo-app-ds-crash-test
+#	make -f ~/dev-shortcuts/demo-apps/Makefile deploy YAML=demo-app-drdep-ds-crash-test
+#	make -f ~/dev-shortcuts/demo-apps/Makefile deploy YAML=demo-app-ds
+#   make -f ~/dev-shortcuts/demo-apps/Makefile deploy YAML=demo-app-rwpr
 	@make -f ${rootMKfilePath} docker-demo-app DEPLOYMENT_IMAGE_VERSION=${DEPLOYMENT_IMAGE_VERSION} YAML=${YAML}
 	@make -f ${rootMKfilePath} load-demo-app-image DEPLOYMENT_IMAGE_VERSION=${DEPLOYMENT_IMAGE_VERSION} YAML=${YAML}
+	sed \
+	  -e "s/DEPLOYMENT_APP_VERSION/$(DEPLOYMENT_APP_VERSION)/g" \
+	  -e "s/DEPLOYMENT_IMAGE_VERSION/$(DEPLOYMENT_IMAGE_VERSION)/g" \
+	  -e "s/DEPLOYMENT_TIMESTAMP/$(DEPLOYMENT_TIMESTAMP)/g" \
+	  ${rootMKfileDir}/yaml/${YAML}.yaml | kubectl apply -f -
+deploy-yaml:
+#	make -f ~/dev-shortcuts/demo-apps/Makefile deploy-yaml YAML=demo-app-ds
+#   make -f ~/dev-shortcuts/demo-apps/Makefile deploy-yaml YAML=demo-app-rwpr
 	sed \
 	  -e "s/DEPLOYMENT_APP_VERSION/$(DEPLOYMENT_APP_VERSION)/g" \
 	  -e "s/DEPLOYMENT_IMAGE_VERSION/$(DEPLOYMENT_IMAGE_VERSION)/g" \

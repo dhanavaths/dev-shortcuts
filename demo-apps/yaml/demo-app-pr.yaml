@@ -7,7 +7,7 @@ metadata:
   name: demo-app
   namespace: clusterfleet
 spec:
-  version: "533634905"
+  version: "DEPLOYMENT_APP_VERSION"
   rolloutStrategy:
     progressiveRollout:
       progressiveRolloutWindowSize: 1
@@ -46,15 +46,12 @@ spec:
                   - "0"
                 env:
                 - name: TIMESTAMP
-                  value: "2021-09-31T14:00:18Z"
+                  value: "DEPLOYMENT_TIMESTAMP"
                 envFrom:
                 - configMapRef:
                     name: clusterfleet-config
-                image: demo-app:v0071
+                image: demo-app:DEPLOYMENT_IMAGE_VERSION
                 name: demo-app
-                volumeMounts:
-                - mountPath: /var/run/docker.sock
-                  name: docker-sock
                 livenessProbe:
                   failureThreshold: 3
                   httpGet:
@@ -75,10 +72,16 @@ spec:
                   periodSeconds: 10
                   successThreshold: 1
                   timeoutSeconds: 2
+                resources:
+                  requests:
+                    cpu: 50m
+                    memory: 128Mi
+                  limits:
+                    cpu: 100m
+                    memory: 256Mi
               dnsPolicy: ClusterFirst
               restartPolicy: Always
-              volumes:
-              - hostPath:
-                  path: /var/run/docker.sock
-                  type: ""
-                name: docker-sock
+              nodeSelector:
+                kubernetes.io/os: linux
+                scheduler.clusterfleet.io/ready: "true"
+                kubernetes.azure.com/mode: "user"
