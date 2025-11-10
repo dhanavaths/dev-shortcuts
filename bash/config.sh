@@ -25,7 +25,8 @@ if [ "$MSYSTEM" = "MINGW64" ]; then
         EXPLORER_COMPATIBLE_WORKSPACE_DIR="C:\\workspace"
     fi
     JQ_CMD="jq-win64.exe"
-    PYTHON_CMD="/c/Program\ Files/SPython/tools/python.exe"
+    export PATH="$PATH:/c/Program\ Files/SPython/tools"
+    PYTHON_CMD="python"
 else
     # WSL settings
     if [ -n "$prod_kube_config_file_path" ]; then
