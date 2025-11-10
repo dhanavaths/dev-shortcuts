@@ -6,6 +6,7 @@ CODE_GIT_REPO_NAME="dev-shortcuts"
 kube_config=""
 JQ_CMD="jq"
 PYTHON_CMD="python3"
+DEV_TEMP_DATA_DIR="$HOME/dev-temp-data"
 
 if [ "$MSYSTEM" = "MINGW64" ]; then
     # git-bash settings
@@ -47,6 +48,7 @@ else
     export WORKSPACE_DIR=$WSL_WORKSPACE_DIR
 fi
 
+export DEV_TEMP_DATA_DIR
 export JQ_CMD
 export PYTHON_CMD
 export prod_kube_config_file_path

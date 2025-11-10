@@ -1,8 +1,8 @@
 import json
 import sys
-import yaml
+import yaml # pip install pyyaml
 import pprint
-from prettytable import PrettyTable
+from prettytable import PrettyTable # pip install prettytable
 
 framework = 1
 daemonset = 2
@@ -384,7 +384,8 @@ def _parse_regular_workload(data, is_daemonset=False):
 
 def _main():
     try:
-        handle = open('/tmp/_app.json', 'rb')
+        home_dir = os.path.expanduser("~")
+        handle = open(f'{home_dir}/dev-temp-data/_app.json', 'rb')
         raw_data = handle.read()
         loaded_data = json.loads(raw_data)
     except Exception as e:

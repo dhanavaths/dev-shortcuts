@@ -55,7 +55,7 @@ function kpresource()
 
 			if [ "$4" = "status" ]; then				
 				echo "kubectl $kube_config -n $1 get app ${_app_name} -ojson" >&2
-				kubectl $kube_config -n $1 get app ${_app_name} -ojson > /tmp/_app.json
+				kubectl $kube_config -n $1 get app ${_app_name} -ojson > ${DEV_TEMP_DATA_DIR}/_app.json
 				${PYTHON_CMD} ${SCRIPTDIR}/../pyscripts/parse_application_status.py
 				return
 			elif [ "$4" = "clusters" ]; then
