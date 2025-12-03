@@ -53,10 +53,30 @@ function kpresource()
 				_attr_path=""
 			fi
 
-			if [ "$4" = "status" ]; then				
-				echo "kubectl $kube_config -n $1 get app ${_app_name} -ojson" >&2
-				kubectl $kube_config -n $1 get app ${_app_name} -ojson > ${DEV_TEMP_DATA_DIR}/_app.json
-				${PYTHON_CMD} ${SCRIPTDIR}/../pyscripts/parse_application_status.py
+			if [ "$4" = "status" ]; then
+				# Simulating a do-while loop
+				while true; do
+					# Fetch the current rollout status
+					rollout_status=$(kubectl $kube_config -n $1 get app ${_app_name} -ojsonpath='{.status.rolloutStatus}')
+					
+					# Print the kubectl command for debugging
+					echo "kubectl $kube_config -n $1 get app ${_app_name} -ojson" >&2
+					
+					# Fetch the application details into a temporary JSON file
+					kubectl $kube_config -n $1 get app ${_app_name} -ojson > ${DEV_TEMP_DATA_DIR}/_app.json
+					
+					# Parse the application status with a Python script
+					${PYTHON_CMD} ${SCRIPTDIR}/../pyscripts/parse_application_status.py
+
+					# If rollout is completed, break the loop
+					if [[ "$rollout_status" == "Completed" ]]; then
+						break
+					fi
+					
+					# Sleep for 3 seconds before checking again
+					sleep 3
+					echo -e "\033[1;33m`date`\033[0m" >&2
+				done
 				return
 			elif [ "$4" = "clusters" ]; then
 				local _object

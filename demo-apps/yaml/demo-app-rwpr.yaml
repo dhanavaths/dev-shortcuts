@@ -11,8 +11,8 @@ spec:
   schedulingStrategy:
     preferredSliceStrategy:
       minSlice: 3
-      minSliceSize: 30
-    slicePreference: NoSlice
+      minSliceSize: 25
+    slicePreference: AlwaysSlice
   rolloutStrategy:
     type: ReplicasWeightedProgressiveRollout
     replicasWeightedProgressiveRollout:
@@ -22,15 +22,18 @@ spec:
         apiVersion: apps/v1
         kind: Deployment
         metadata:
-          name: demo-app
+          name: demo-app-rwpr
           namespace: clusterfleet
         spec:
           updateStrategy:
             rollingUpdate:
               maxSurge: 0
-              maxUnavailable: 10%
             type: RollingUpdate
-          replicas: 7
+          strategy:
+            rollingUpdate:
+              maxSurge: 0
+            type: RollingUpdate
+          replicas: 23
           selector:
             matchLabels:
               app: demo-app-rwpr
@@ -46,7 +49,7 @@ spec:
                   - --http-port
                   - "12012"
                   - --startup-delay
-                  - "2"
+                  - "0"
                 env:
                 - name: TIMESTAMP
                   value: "DEPLOYMENT_TIMESTAMP"
@@ -61,8 +64,8 @@ spec:
                     path: /keepalive
                     port: 12012
                     scheme: HTTP
-                  initialDelaySeconds: 2
-                  periodSeconds: 10
+                  initialDelaySeconds: 1
+                  periodSeconds: 5
                   successThreshold: 1
                   timeoutSeconds: 2
                 readinessProbe:
@@ -71,7 +74,7 @@ spec:
                     path: /ready
                     port: 12012
                     scheme: HTTP
-                  initialDelaySeconds: 2
+                  initialDelaySeconds: 1
                   periodSeconds: 10
                   successThreshold: 1
                   timeoutSeconds: 2

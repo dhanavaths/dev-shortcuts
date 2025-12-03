@@ -31,8 +31,8 @@ function _git_commands()
 			fi
 			git checkout -b ${DEVOPS_NEW_BRANCH_USERNAME_PREFIX}/$2
 			;;
-		d)
-			git diff
+		cp)
+			git cherry-pick ${@:2}
 			;;
 		m)
 			if git show-ref --quiet refs/heads/main; then
@@ -48,8 +48,8 @@ function _git_commands()
 				git merge master
 			fi
 			;;
-		D)
-			${SCRIPTDIR}/delete_branch.sh
+		d)
+			git diff
 			;;
 		diff)
 			current_branch=$(git rev-parse --abbrev-ref HEAD)
@@ -62,6 +62,9 @@ function _git_commands()
         patch)
             git apply --ignore-space-change --ignore-whitespace ${@:2}
             ;;
+		D)
+			${SCRIPTDIR}/delete_branch.sh
+			;;
 		f)
 			if [ -z "$2" ]; then
 				echo "Branch name is required" >&2
@@ -69,7 +72,11 @@ function _git_commands()
 			fi
 			git fetch origin $2
 			git checkout $2
-		;;
+			;;
+		reset)
+			git reset HEAD
+			git checkout -- .
+			;;
 	esac
 }
 
