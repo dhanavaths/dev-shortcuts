@@ -11,7 +11,7 @@ display_items=""
 function _main() {
   # if no filter is provided for prod kube contexts, just print all contexts and exit.
   if [ -z "$filter" ] && [ -n "$kube_config" ]; then
-    kubectl $kube_config config get-contexts
+    kubectl $kube_context $kube_config config get-contexts
     exit 0
   fi
 
@@ -19,11 +19,11 @@ function _main() {
     filter="$filter-"
   fi
 
-  cur_context=$(kubectl $kube_config config current-context)
+  cur_context=$(kubectl $kube_context $kube_config config current-context)
   if [ -z "$filter" ]; then
-    items=$(kubectl $kube_config config get-contexts | grep -v CURRENT | sed 's/^[ \*\t]*//' | cut -d' ' -f1 | sort)
+    items=$(kubectl $kube_context $kube_config config get-contexts | grep -v CURRENT | sed 's/^[ \*\t]*//' | cut -d' ' -f1 | sort)
   else
-    items=$(kubectl $kube_config config get-contexts  | grep -- "$filter" | sed 's/^[ \*\t]*//' | cut -d' ' -f1 | sort)
+    items=$(kubectl $kube_context $kube_config config get-contexts  | grep -- "$filter" | sed 's/^[ \*\t]*//' | cut -d' ' -f1 | sort)
   fi 
 
   if [ -n "$items" ]; then
@@ -35,7 +35,7 @@ function _main() {
   select_item_from_resource_list "Context"
   item_name=$(echo "$RESOURCE_LIST_SELECTED_NAME" | tr '*' ' ')
   if [ -n "$item_name" ]; then
-    kubectl $kube_config config $action $item_name
+    kubectl $kube_context $kube_config config $action $item_name
   else
     echo "Invalid input. Please try again."
   fi

@@ -6,13 +6,13 @@ if [ -z "$kube_config" ]; then
 fi
 
 declare -A sc_cluster_list
-cc_kube_contexts=`kubectl $kube_config config get-contexts -o name | grep '^cc'`
+cc_kube_contexts=`kubectl $kube_context $kube_config config get-contexts -o name | grep '^cc'`
 
 for _cc_context_name in $cc_kube_contexts; do
     echo "Trying to fetch standard clusters using $_cc_context_name" 
-    sc_name_list=`kubectl $kube_config --context $_cc_context_name get cl -o=jsonpath="{.items[*].metadata.name}"`
+    sc_name_list=`kubectl $kube_context $kube_config --context $_cc_context_name get cl -o=jsonpath="{.items[*].metadata.name}"`
     if [ $? -ne 0 ] || [ -z "$sc_name_list" ]; then
-        kubectl $kube_config config delete-context $_cc_context_name
+        kubectl $kube_context $kube_config config delete-context $_cc_context_name
         echo "$_cc_context_name cc cluster does not exist."
         continue
     fi
@@ -23,7 +23,7 @@ done
 
 echo $sc_cluster_list
 
-sc_kube_contexts=`kubectl $kube_config config get-contexts -o name | grep -v '^cc-' | grep -v '^uc-'`
+sc_kube_contexts=`kubectl $kube_context $kube_config config get-contexts -o name | grep -v '^cc-' | grep -v '^uc-'`
 
 for sc_context_name in $sc_kube_contexts; do
     sc_cname=`echo $sc_context_name | cut -d'-' -f1-3` 
@@ -32,8 +32,8 @@ for sc_context_name in $sc_kube_contexts; do
         echo "$sc_cname still exists."
     else
         echo "$sc_cname does not exist any more. Deleting it from $kube_config."
-        kubectl $kube_config config delete-context $sc_cname
-        kubectl $kube_config config delete-context $sc_cname-admin
+        kubectl $kube_context $kube_config config delete-context $sc_cname
+        kubectl $kube_context $kube_config config delete-context $sc_cname-admin
     fi
 done
 

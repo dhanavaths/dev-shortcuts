@@ -4,6 +4,7 @@ source "${CONFIG_SCRIPTDIR}/dev-config/customconfig.sh" 2>/dev/null || true
 
 CODE_GIT_REPO_NAME="dev-shortcuts"
 kube_config=""
+kube_context=""
 JQ_CMD="jq"
 PYTHON_CMD="python3"
 DEV_TEMP_DATA_DIR="$HOME/dev-temp-data"

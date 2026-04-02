@@ -16,11 +16,11 @@ fi
 function _main() {
 
   if [ -n "${OPT_NODE_NAME_SELECTOR}" ]; then
-    resource_list=$(kubectl $kube_config $OPT_NAMESPACE get $resource_type ${OPT_NODE_NAME_SELECTOR} -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n')
+    resource_list=$(kubectl $kube_context $kube_config $OPT_NAMESPACE get $resource_type ${OPT_NODE_NAME_SELECTOR} -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n')
   elif [ -n "${OPT_RESOURCE_NAME}" ]; then
-    resource_list=$(kubectl $kube_config $OPT_NAMESPACE get $resource_type ${OPT_RESOURCE_NAME} -o jsonpath='{.metadata.name}' | tr ' ' '\n')
+    resource_list=$(kubectl $kube_context $kube_config $OPT_NAMESPACE get $resource_type ${OPT_RESOURCE_NAME} -o jsonpath='{.metadata.name}' | tr ' ' '\n')
   else
-    resource_list=$(kubectl $kube_config $OPT_NAMESPACE get $resource_type -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n')
+    resource_list=$(kubectl $kube_context $kube_config $OPT_NAMESPACE get $resource_type -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n')
   fi
 
   if [ -n "${OPT_RESOURCE_NAME_PATTERN}" ]; then
@@ -44,7 +44,7 @@ function _main() {
       read confirmation_resource_name
       echo "$RESOURCE_LIST_SELECTED_NAME"
       if [ "$RESOURCE_LIST_SELECTED_NAME" = "$confirmation_resource_name" ]; then
-        kubectl $kube_config $OPT_NAMESPACE delete $resource_type $confirmation_resource_name
+        kubectl $kube_context $kube_config $OPT_NAMESPACE delete $resource_type $confirmation_resource_name
       else
         echo "Invalid resource name entered to confirm the deletion."
       fi

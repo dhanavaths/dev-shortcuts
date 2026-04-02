@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+option go_package = "demo-app/pkg/grpcdemo";
+
+package grpcdemo;
+
+// A simple demo service with Ping and streaming RPCs.
+service GrpcDemoService {
+  // Unary: returns a pong with the same message.
+  rpc Ping (PingRequest) returns (PingReply);
+
+  // Bidirectional streaming: echoes a reply for every incoming stream message.
+  rpc StreamMessages (stream StreamRequest) returns (stream StreamReply);
+}
+
+message PingRequest {
+  string message = 1;
+}
+
+message PingReply {
+  string message = 1;
+}
+
+message StreamRequest {
+  string message = 1;
+}
+
+message StreamReply {
+  int32 sequence = 1;
+  string message = 2;
+}

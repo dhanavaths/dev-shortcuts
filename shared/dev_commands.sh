@@ -14,8 +14,8 @@ function _execute_dev_commands() {
             ;;
         ds)
             ${SCRIPTDIR}/../bash/eval.sh _local_kubectl li scheduler
-            kubectl -n default delete deployment scheduler-deployment
-            kubectl -n default delete lease scheduler-leaderelection
+            kubectl $kube_context -n default delete deployment scheduler-deployment
+            kubectl $kube_context -n default delete lease scheduler-leaderelection
             ${SCRIPTDIR}/../bash/eval.sh _local_kubectl - apply scheduler
             ;;
         status|s)

@@ -4,7 +4,7 @@ metadata:
   annotations:
     microsoft-falcon.net/clusterip-check: "disabled"
     microsoft-falcon.net/falcon-core-service: "false"
-  name: demo-app-rwpr
+  name: demo-app-rwpr-clone
   namespace: falcon-core
 spec:
   version: "DEPLOYMENT_APP_VERSION"
@@ -25,7 +25,7 @@ spec:
           name: demo-app-rwpr-clip
           namespace: falcon-core
           labels:
-            app: demo-app-rwpr
+            app: demo-app-rwpr-clone
         spec:
           type: ClusterIP
           ports:
@@ -34,15 +34,15 @@ spec:
             protocol: TCP
             targetPort: 12012           
           selector:
-            app: demo-app-rwpr
+            app: demo-app-rwpr-clone
     - manifest:
         apiVersion: v1
         kind: Service
         metadata:
-          name: falcon-discovery-demo-app-rwpr
+          name: falcon-discovery-demo-app-rwpr-clone
           namespace: falcon-core
           labels:
-            app: demo-app-rwpr
+            app: demo-app-rwpr-clone
             microsoft-falcon.net/network-island: "private"
             router.falcon.io/port-name: "https"
         spec:
@@ -58,18 +58,18 @@ spec:
             protocol: TCP
             targetPort: 12443
           selector:
-            app: demo-app-rwpr
+            app: demo-app-rwpr-clone
     - manifest:
         apiVersion: multicluster.x-k8s.io/v1alpha1
         kind: ServiceExport
         metadata:
-          name: falcon-discovery-demo-app-rwpr
+          name: falcon-discovery-demo-app-rwpr-clone
           namespace: falcon-core
     - manifest:
         apiVersion: apps/v1
         kind: Deployment
         metadata:
-          name: demo-app-rwpr-1
+          name: demo-app-rwpr-clone-1
           namespace: falcon-core
         spec:
           minReadySeconds: 0
@@ -86,36 +86,27 @@ spec:
           replicas: 3
           selector:
             matchLabels:
-              app: demo-app-rwpr
+              app: demo-app-rwpr-clone
           serviceName: ""
           template:
             metadata:
               labels:
-                app: demo-app-rwpr
+                app: demo-app-rwpr-clone
                 test: "6"
             spec:
               containers:
               - args:
                   - --http-port
                   - "12012"
-                  # - --http1-only
                   - --https-port
                   - "12443"
                   - --startup-delay
                   - "0"
-                  - --read-timeout
-                  - "100s"
-                  - --write-timeout
-                  - "100s"
-                  - --idle-timeout
-                  - "100s"
                 env:
                 - name: TIMESTAMP
                   value: "DEPLOYMENT_TIMESTAMP"
-                - name: GODEBUG
-                  value: "http2debug=2"
                 image: demo-app:DEPLOYMENT_IMAGE_VERSION
-                name: demo-app-rwpr
+                name: demo-app-rwpr-clone
                 ports:
                 - containerPort: 12012
                   name: http
@@ -124,7 +115,7 @@ spec:
                   name: grpcs
                   protocol: TCP
                 livenessProbe:
-                  failureThreshold: 30
+                  failureThreshold: 3
                   httpGet:
                     path: /keepalive
                     port: http

@@ -7,6 +7,7 @@ CODE_DIR="${rootMKfileDir}/.."
 TAG := $(shell git -C ${CODE_DIR} describe --tags --always)
 VERSION :=
 DEPLOYMENT_IMAGE_VERSION ?= v107
+CLUSTER_CONTEXT ?= dev-control-cluster
 DEPLOYMENT_TIMESTAMP := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 DEPLOYMENT_APP_VERSION := $(shell date -u +"%Y%m%d%H%M%S")
 # Adds a '-dirty' suffix to version string if there are uncommitted changes
@@ -61,7 +62,7 @@ load-demo-app-image:
 	@echo -n "Kind cluster name (Enter 'cc' for current cluster): "; \
 	read KIND_CLUSTER_NAME; \
 	if [ "$$KIND_CLUSTER_NAME" = "cc" ]; then \
-		cluster_list=$$(kubectl config current-context | cut -d'-' -f2-); \
+		cluster_list=$$(kubectl $kube_context config current-context | cut -d'-' -f2-); \
 	elif [ -z "$$KIND_CLUSTER_NAME" ]; then \
 		cluster_list=$$(kind get clusters); \
 	else \
@@ -83,7 +84,7 @@ deploy:
 	  -e "s/DEPLOYMENT_APP_VERSION/$(DEPLOYMENT_APP_VERSION)/g" \
 	  -e "s/DEPLOYMENT_IMAGE_VERSION/$(DEPLOYMENT_IMAGE_VERSION)/g" \
 	  -e "s/DEPLOYMENT_TIMESTAMP/$(DEPLOYMENT_TIMESTAMP)/g" \
-	  ${rootMKfileDir}/yaml/${YAML}.yaml | kubectl apply -f -
+	  ${rootMKfileDir}/yaml/${YAML}.yaml | kubectl $kube_context --context kind-$(CLUSTER_CONTEXT) apply -f -
 deploy-yaml:
 #	make -f ~/dev-shortcuts/demo-apps/Makefile deploy-yaml YAML=demo-app-ds
 #   make -f ~/dev-shortcuts/demo-apps/Makefile deploy-yaml YAML=demo-app-rwpr
@@ -91,4 +92,4 @@ deploy-yaml:
 	  -e "s/DEPLOYMENT_APP_VERSION/$(DEPLOYMENT_APP_VERSION)/g" \
 	  -e "s/DEPLOYMENT_IMAGE_VERSION/$(DEPLOYMENT_IMAGE_VERSION)/g" \
 	  -e "s/DEPLOYMENT_TIMESTAMP/$(DEPLOYMENT_TIMESTAMP)/g" \
-	  ${rootMKfileDir}/yaml/${YAML}.yaml | kubectl apply -f -
+	  ${rootMKfileDir}/yaml/${YAML}.yaml | kubectl $kube_context --context kind-$(CLUSTER_CONTEXT) apply -f -

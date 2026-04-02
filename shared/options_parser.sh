@@ -1,3 +1,6 @@
+SCRIPTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+source "${SCRIPTDIR}/../bash/config.sh"
+
 OPT_NAMESPACE=""
 OPT_NAMESPACE_NAME=""
 OPT_ALL_NAMESPACES=""
@@ -47,6 +50,10 @@ function set_common_options() {
             OPT_SORT_BY="--sort-by=$2"
             ;;
         esac
+        shift 2
+        ;;
+      -ctx)
+        export kube_context="--context $2"
         shift 2
         ;;
       -nn | --node-name)

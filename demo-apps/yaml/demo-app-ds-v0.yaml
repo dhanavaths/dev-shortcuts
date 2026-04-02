@@ -4,6 +4,7 @@ metadata:
   name: demo-app-ds-v0
   namespace: clusterfleet
 spec:
+  minReadySeconds: 0
   updateStrategy:
     rollingUpdate:
       maxUnavailable: 1
