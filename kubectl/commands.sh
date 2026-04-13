@@ -268,25 +268,6 @@ function kpverb()
 				column -t -s $'\t'
 
 			;;
-		clparse)
-			local region=$(echo $3 | cut -d '-' -f2)
-			local vnet_subnet_pair=$(${PYTHON_CMD} ~/$CODE_GIT_REPO_NAME/pyscripts/sc_template_parser.py ./fleet-documents/clusters/$region/$3.yaml)
-			echo "vnet_subnet_pair: $vnet_subnet_pair"
-			;;
-		clreplace)
-			local region=$(echo $4 | cut -d '-' -f2)
-			local vnet_subnet_pair=$(${PYTHON_CMD} ~/$CODE_GIT_REPO_NAME/pyscripts/sc_template_parser.py ./fleet-documents/clusters/$region/$4.yaml)
-			${PYTHON_CMD} ~/$CODE_GIT_REPO_NAME/pyscripts/sc_template_parser.py $3 $vnet_subnet_pair
-			if [ $? -ne 0 ]; then
-				echo "Failed to replace cluster template!"
-				return
-			fi
-			git rm fleet-documents/clusters/$region/$4.yaml
-			echo "vnet_subnet_pair used: $vnet_subnet_pair"
-			;;
-		clnew)
-			${PYTHON_CMD} ~/$CODE_GIT_REPO_NAME/pyscripts/sc_template_parser.py ${@:3}
-			;;
 		clundodrain)
 			kubectl $kube_config patch cl $3 --type merge -p '{"status":{"runtimeStatus":{"clusterState":"Ready","clusterSubstate":"Running","clusterStateOverride":false}}}' --subresource status
 			;;

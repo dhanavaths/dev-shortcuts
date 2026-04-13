@@ -56,3 +56,4 @@ export prod_kube_config_file_path
 export DEVOPS_NEW_BRANCH_USERNAME_PREFIX
 export CODE_GIT_REPO_NAME
 export EXPLORER_COMPATIBLE_WORKSPACE_DIR
+export KUBE_EDITOR="code --wait"
