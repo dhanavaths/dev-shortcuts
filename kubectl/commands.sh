@@ -287,6 +287,9 @@ function kpverb()
 		clnew)
 			${PYTHON_CMD} ~/$CODE_GIT_REPO_NAME/pyscripts/sc_template_parser.py ${@:3}
 			;;
+		clundodrain)
+			kubectl $kube_config patch cl $3 --type merge -p '{"status":{"runtimeStatus":{"clusterState":"Ready","clusterSubstate":"Running","clusterStateOverride":false}}}' --subresource status
+			;;
 		cldrain)
 			if [ -z "$3" ]; then
 				echo "help: k - drain <std-cluster-name>"
@@ -618,6 +621,13 @@ function _kpnamespace()
 			kubectl $kube_context ${kube_config} -n submariner-k8s-broker get endpointslices -l "multicluster.kubernetes.io/source-cluster=$2"
 			echo
 			echo "kubectl $kube_context ${kube_config} -n submariner-k8s-broker get endpointslices " >&2
+			;;
+		app)
+			IFS='.' read -r _app_ns app_name <<< "$2"
+			echo -e "${YELLOW}kpverb $_app_ns get app status $app_name $DEFAULTCOLOR" >&2
+			kpverb $_app_ns get app status $app_name
+			echo -e "${YELLOW}kpverb $_app_ns get app mw $app_name $DEFAULTCOLOR" >&2 
+			kpverb $_app_ns get app mw $app_name
 			;;
 		*)
 			kpverb $@
