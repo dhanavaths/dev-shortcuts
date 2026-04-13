@@ -72,7 +72,11 @@ function kpresource()
 					if [[ "$rollout_status" == "Completed" ]]; then
 						break
 					fi
-					
+
+					if [ -z "$kube_config" ]; then
+						break
+					fi					
+
 					# Sleep for 3 seconds before checking again
 					sleep 3
 					echo -e "\033[1;33m`date`\033[0m" >&2
@@ -323,8 +327,8 @@ function kpverb()
 
 			echo
 			echo -e "${YELLOW}Manifestworks managed by scheduler: $DEFAULTCOLOR" >&2
-			echo "kubectl $kube_context $kube_config -n std-cluster-$3 get manifestwork -l microsoft-falcon.net/managed-by=scheduler | grep -v falcon-core | grep -v clusterfleet" >&2
-			local _output=$(kubectl $kube_context $kube_config -n std-cluster-$3 get manifestwork -l microsoft-falcon.net/managed-by=scheduler ${OPT_SORT_BY} | grep -v falcon-core | grep -v clusterfleet)
+			echo "kubectl $kube_context $kube_config -n std-cluster-$3 get manifestwork -l 'microsoft-falcon.net/managed-by=scheduler,microsoft-falcon.net/falcon-core-service!=true' | grep -v falcon-core | grep -v clusterfleet" >&2
+			local _output=$(kubectl $kube_context $kube_config -n std-cluster-$3 get manifestwork -l 'microsoft-falcon.net/managed-by=scheduler,microsoft-falcon.net/falcon-core-service!=true' ${OPT_SORT_BY} | grep -v falcon-core | grep -v clusterfleet)
 			echo "${_output}"
 
 			# echo "${_output}" | head -n 1  |cut -d ' ' -f1 | tr '\n' ' '
