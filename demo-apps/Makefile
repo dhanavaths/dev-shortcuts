@@ -84,7 +84,7 @@ deploy:
 	  -e "s/DEPLOYMENT_APP_VERSION/$(DEPLOYMENT_APP_VERSION)/g" \
 	  -e "s/DEPLOYMENT_IMAGE_VERSION/$(DEPLOYMENT_IMAGE_VERSION)/g" \
 	  -e "s/DEPLOYMENT_TIMESTAMP/$(DEPLOYMENT_TIMESTAMP)/g" \
-	  ${rootMKfileDir}/yaml/${YAML}.yaml | kubectl $kube_context --context kind-$(CLUSTER_CONTEXT) apply -f -
+	  ${rootMKfileDir}/yaml/${YAML}.yaml | kubectl $$kube_context --context kind-$(CLUSTER_CONTEXT) apply -f -
 deploy-yaml:
 #	make -f ~/dev-shortcuts/demo-apps/Makefile deploy-yaml YAML=demo-app-ds
 #   make -f ~/dev-shortcuts/demo-apps/Makefile deploy-yaml YAML=demo-app-rwpr
@@ -92,4 +92,4 @@ deploy-yaml:
 	  -e "s/DEPLOYMENT_APP_VERSION/$(DEPLOYMENT_APP_VERSION)/g" \
 	  -e "s/DEPLOYMENT_IMAGE_VERSION/$(DEPLOYMENT_IMAGE_VERSION)/g" \
 	  -e "s/DEPLOYMENT_TIMESTAMP/$(DEPLOYMENT_TIMESTAMP)/g" \
-	  ${rootMKfileDir}/yaml/${YAML}.yaml | kubectl $kube_context --context kind-$(CLUSTER_CONTEXT) apply -f -
+	  ${rootMKfileDir}/yaml/${YAML}.yaml | kubectl $$kube_context --context kind-$(CLUSTER_CONTEXT) apply -f -

@@ -64,7 +64,10 @@ function kpresource()
 					
 					# Fetch the application details into a temporary JSON file
 					kubectl $kube_context $kube_config -n $1 get app ${_app_name} -ojson > ${DEV_TEMP_DATA_DIR}/_app.json
-					
+
+					if [ -n "$kube_config" ]; then
+						break
+					fi					
 					# Parse the application status with a Python script
 					${PYTHON_CMD} ${SCRIPTDIR}/../pyscripts/parse_application_status.py
 
@@ -93,6 +96,7 @@ function kpresource()
 				local _object
 				local _uid
 				local _clusters		
+				local _mw_custom_columns='Namespace:.metadata.namespace,Ready:.status.conditions[?(@.type=="Ready")].status,Replicas:.spec.workload.manifests[*].spec.replicas,ReadyReplicas:.status.manifestStatuses[*].status.readyReplicas,AvailableReplicas:.status.manifestStatuses[*].status.availableReplicas,Generation:.metadata.generation,ObservedGeneration:.status.observedGeneration,Age:.metadata.creationTimestamp,AppGen:.metadata.annotations.apis\.clusterfleet\.io/application-generation,IsStaleManifest:.metadata.labels.microsoft-falcon\.net/is-stale-manifest'
 				
 				_object=$(kubectl $kube_context $kube_config -n $1 get app ${_app_name} -ojson)
 				_clusters=$(echo "$_object" | ${JQ_CMD} -r '.status.clusters[].cluster')
@@ -103,7 +107,13 @@ function kpresource()
 				local i=0
 				local _output
 				if [ -z $_attr_path ]; then
-					kubectl $kube_context $kube_config get mw -A -l "apis.clusterfleet.io/work=$_uid" -owide ${OPT_SORT_BY}
+					_all_clusters=$(kubectl $kube_context $kube_config get cl --no-headers -ocustom-columns="NAME:.metadata.name") 
+					for cl in $_all_clusters; do
+						_output=$(kubectl $kube_context $kube_config -n std-cluster-$cl get mw "$1.${_app_name}" -o custom-columns="${_mw_custom_columns}" --no-headers 2> /dev/null)
+						if [ $? -eq 0 ]; then
+							echo "$_output"
+						fi
+					done
 				else
 					for cl in $_clusters; do
 						_output=$(kubectl $kube_context $kube_config -n std-cluster-$cl get mw "$1.${_app_name}" -ojson ${OPT_SORT_BY} | ${JQ_CMD} -r ".items[] | $_attr_path")
