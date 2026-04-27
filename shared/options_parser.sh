@@ -52,10 +52,6 @@ function set_common_options() {
         esac
         shift 2
         ;;
-      -ctx)
-        export kube_context="--context $2"
-        shift 2
-        ;;
       -nn | --node-name)
         OPT_NODE_NAME_SELECTOR="--field-selector spec.nodeName=$2"
         shift 2

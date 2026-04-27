@@ -37,7 +37,9 @@ function _main() {
   if [ -n "$RESOURCE_LIST_SELECTED_NAME" ]; then
 
       if [ -z "$kube_config" ]; then
-        echo "$RESOURCE_LIST_SELECTED_NAME" | xclip -selection clipboard
+        if command -v xclip >/dev/null 2>&1; then
+          echo "$RESOURCE_LIST_SELECTED_NAME" | xclip -selection clipboard
+        fi
       fi
 
       echo -e -n "${YELLOW}Enter name of the resource to DELETE:${DEFAULTCOLOR} "

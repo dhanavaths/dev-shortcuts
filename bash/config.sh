@@ -13,14 +13,6 @@ if [ "$MSYSTEM" = "MINGW64" ]; then
     # git-bash settings
     if [ -n "$prod_kube_config_file_path" ]; then
         echo -n ""
-    elif [ -f "/q/kube-config" ]; then
-        prod_kube_config_file_path="/q/kube-config"
-        WINDOWS_WORKSPACE_DIR="/q/workspace"
-        EXPLORER_COMPATIBLE_WORKSPACE_DIR="Q:\\workspace"
-    elif [ -f "/e/kube-config" ]; then
-        prod_kube_config_file_path="/e/kube-config"
-        WINDOWS_WORKSPACE_DIR="/e/workspace"
-        EXPLORER_COMPATIBLE_WORKSPACE_DIR="E:\\workspace"
     elif [ -f "$HOME/.kube/config" ]; then
         prod_kube_config_file_path="$HOME/.kube/config"
         WINDOWS_WORKSPACE_DIR="/c/workspace"
@@ -33,12 +25,8 @@ else
     # WSL settings
     if [ -n "$prod_kube_config_file_path" ]; then
         echo -n ""
-    elif [ -f "/mnt/q/kube-config" ]; then
-        prod_kube_config_file_path="/mnt/q/kube-config"
-        WSL_WORKSPACE_DIR="${HOME}/workspace"
-    elif [ -f "/mnt/e/kube-config" ]; then
-        prod_kube_config_file_path="/mnt/e/kube-config"
-        WSL_WORKSPACE_DIR="${HOME}/workspace"
+    else
+        prod_kube_config_file_path="$HOME/.kube/config"
     fi
 fi
 

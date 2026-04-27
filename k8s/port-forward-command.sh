@@ -14,7 +14,9 @@ function _port_forward() {
       exit 0
   fi
   object_name=$1
-  echo "$object_name" | xclip -selection clipboard
+  if command -v xclip >/dev/null 2>&1; then
+      echo "$object_name" | xclip -selection clipboard
+  fi
   echo "kubectl $kube_context $kube_config $OPT_NAMESPACE port-forward $resource_kind/$object_name $port_to_forward:$port_to_forward" >&2
   kubectl $kube_context $kube_config $OPT_NAMESPACE port-forward $resource_kind/$object_name $port_to_forward:$port_to_forward
 }
