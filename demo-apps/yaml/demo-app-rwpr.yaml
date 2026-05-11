@@ -10,7 +10,7 @@ spec:
   version: "DEPLOYMENT_APP_VERSION"
   schedulingStrategy:
     preferredSliceStrategy:
-      minSlice: 3
+      minSlice: 2
       minSliceSize: 25
     slicePreference: NoSlice
   rolloutStrategy:

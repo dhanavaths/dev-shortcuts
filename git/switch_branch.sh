@@ -8,14 +8,16 @@ function _main() {
   #   exit 1
   # fi
 
-  branches=$(git branch | nl -v 0)
+  branches=$(git sorted-branches | nl -v 0)
   if [ -z "$branches" ]; then
     echo "No branches found."
     exit 1
   fi
 
+  branches_display=$(echo "$branches" | sed -E "s/^([[:space:]]*[0-9]+[[:space:]]+)\*[[:space:]]+(.+)$/\1* \x1b[0;32m\2\x1b[0m/")
+
   echo "Select a branch to switch:"
-  echo "$branches"
+  echo -e "$branches_display"
 
   # Read user input
   read -p "Enter a number: " branch_number

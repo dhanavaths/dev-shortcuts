@@ -10,6 +10,7 @@ function g()
 
 function kube_prod()
 {
+	export kube_context=""
 	if [ "$1" = "-ctx" ]; then
 		export kube_context="--context $2"
 		${SCRIPTDIR}/eval.sh _prod_kubectl ${@:3}
@@ -20,8 +21,10 @@ function kube_prod()
 
 function kube_local()
 {
+	export kube_context=""
 	if [ "$1" = "-ctx" ]; then
 		export kube_context="--context $2"
+		echo "Using kube context: $kube_context"
 		${SCRIPTDIR}/eval.sh _local_kubectl ${@:3}
 	else
 		${SCRIPTDIR}/eval.sh _local_kubectl $@
