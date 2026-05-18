@@ -4,9 +4,9 @@ Install through helm:
     helm install monitor prometheus-community/kube-prometheus-stack --namespace monitoring --create-namespace
 
 Change Resultion:
-    kubectl edit prometheus -n monitoring
-    spec:
-      scrapeInterval: 5s # Force high-resolution polling
+    # Force high-resolution polling
+    kubectl patch prometheus -n monitoring monitor-kube-prometheus-st-prometheus \
+      --type=merge -p '{"spec":{"scrapeInterval":"5s"}}'
 
 Change admin password:
     helm upgrade monitor prometheus-community/kube-prometheus-stack \
@@ -21,11 +21,14 @@ Access Portal:
     username: admin
     password: admin
 
+Create a namespace:
+    kubectl create ns poc
+
 Deploy micro-burst-test:
     kubectl apply -f burst-test/micro-burst-test.yaml
 
 Delete micro-burst-test:
-    kubectl -n falcon-core delete deploy micro-burst-test
+    kubectl -n poc delete deploy micro-burst-test
 
 Queries:
-    sum(rate(container_cpu_usage_seconds_total{namespace="falcon-core", pod=~"micro-burst-test"}[1m]))
+    sum(rate(container_cpu_usage_seconds_total{namespace="poc", pod=~"micro-burst-test"}[1m]))

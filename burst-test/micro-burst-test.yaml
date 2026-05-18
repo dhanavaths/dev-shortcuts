@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: micro-burst-test
-  namespace: falcon-core
+  namespace: poc
   labels:
     app: burst-test
 spec:
