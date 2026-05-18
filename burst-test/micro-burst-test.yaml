@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: micro-burst-test
+  namespace: falcon-core
+  labels:
+    app: burst-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: burst-test
+  template:
+    metadata:
+      labels:
+        app: burst-test
+    spec:
+      containers:
+      - name: stress
+        image: ghcr.io/alexei-led/stress-ng
+        args:
+        - "--cpu"
+        - "4"
+        - "--timeout"
+        - "1h"
+        resources:
+          limits:
+            cpu: 2000m     # Max 200ms of CPU time per 100ms window
+            memory: 512Mi
+          requests:
+            cpu: 1000m     # Guaranteed 1 Core
+            memory: 512Mi
+      nodeSelector:
+        kubernetes.io/os: linux
+        scheduler.clusterfleet.io/ready: "true"
+        kubernetes.azure.com/mode: "user"

@@ -1,0 +1,36 @@
+# PROPOSED router: connect=5s, request=15s. Same retry policy.
+# Connect=5s lets the kernel retransmit SYN at least once (initial RTO
+# is ~1s, doubling to 2s, 4s) before we give up - crucial under loss.
+# Request=15s tolerates a few packet drops within a single attempt
+# instead of forcing the retry/backoff path that compounds the outage.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: router-proposed
+  labels: {app: router, variant: proposed}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: router, variant: proposed}}
+  template:
+    metadata:
+      labels: {app: router, variant: proposed}
+    spec:
+      containers:
+        - name: router
+          image: IMAGE_PLACEHOLDER
+          imagePullPolicy: IfNotPresent
+          command:
+            - /usr/local/bin/router
+            - -url=http://service-discovery:8080/services
+            - -connect-timeout=5s
+            - -request-timeout=15s
+            - -retry-base=500ms
+            - -max-retries=3
+            - -refresh-every=5s
+            - -liveness-max-staleness=30s
+            - -report-every=10s
+            - -label=proposed
+          env:
+            - {name: STATS_PORT, value: "9090"}
+          ports:
+            - {containerPort: 9090, name: stats}

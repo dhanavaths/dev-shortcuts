@@ -1,0 +1,68 @@
+# One-shot Job that injects packet drops into the service-discovery
+# pod from the outside, in case you don't want to bake the netem
+# sidecar into the deployment (or want to vary loss without restarting
+# the server). It picks the running discovery pod and execs
+# `nsenter`-style via kubectl exec into the existing netem sidecar.
+#
+# Easier path: just `kubectl set env deploy/service-discovery -c netem
+# NETEM_LOSS=30% NETEM_DELAY=100ms` and let the sidecar restart.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: netem-injector
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      serviceAccountName: netem-injector
+      containers:
+        - name: injector
+          image: IMAGE_PLACEHOLDER
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -eu
+              : "${LOSS:=30%}"
+              : "${DELAY:=100ms}"
+              : "${JITTER:=20ms}"
+              : "${DURATION:=120}"
+              echo "Injecting loss=$LOSS delay=$DELAY jitter=$JITTER for ${DURATION}s"
+              kubectl set env deploy/service-discovery -c netem \
+                NETEM_LOSS="$LOSS" NETEM_DELAY="$DELAY" NETEM_JITTER="$JITTER"
+              sleep "$DURATION"
+              echo "Clearing netem"
+              kubectl set env deploy/service-discovery -c netem \
+                NETEM_LOSS="0%" NETEM_DELAY="" NETEM_JITTER=""
+          env:
+            - {name: LOSS,     value: "30%"}
+            - {name: DELAY,    value: "100ms"}
+            - {name: JITTER,   value: "20ms"}
+            - {name: DURATION, value: "180"}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: netem-injector
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: netem-injector
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: netem-injector
+subjects:
+  - kind: ServiceAccount
+    name: netem-injector
+roleRef:
+  kind: Role
+  name: netem-injector
+  apiGroup: rbac.authorization.k8s.io
