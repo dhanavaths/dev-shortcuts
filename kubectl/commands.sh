@@ -65,9 +65,6 @@ function kpresource()
 					# Fetch the application details into a temporary JSON file
 					kubectl $kube_context $kube_config -n $1 get app ${_app_name} -ojson > ${DEV_TEMP_DATA_DIR}/_app.json
 
-					if [ -n "$kube_config" ]; then
-						break
-					fi					
 					# Parse the application status with a Python script
 					${PYTHON_CMD} ${SCRIPTDIR}/../pyscripts/parse_application_status.py
 
@@ -76,7 +73,7 @@ function kpresource()
 						break
 					fi
 
-					if [ -z "$kube_config" ]; then
+					if [ -n "$kube_config" ]; then
 						break
 					fi					
 
