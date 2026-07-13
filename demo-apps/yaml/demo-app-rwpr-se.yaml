@@ -12,7 +12,7 @@ spec:
     preferredSliceStrategy:
       minSlice: 2
       minSliceSize: 15
-    slicePreference: AlwaysSlice
+    slicePreference: NoSlice
   rolloutStrategy:
     type: ReplicasWeightedProgressiveRollout
     replicasWeightedProgressiveRollout:
@@ -41,36 +41,36 @@ spec:
             targetPort: 12443           
           selector:
             app: demo-app-rwpr
-    # - manifest:
-    #     apiVersion: v1
-    #     kind: Service
-    #     metadata:
-    #       name: falcon-discovery-demo-app-rwpr
-    #       namespace: falcon-core
-    #       labels:
-    #         app: demo-app-rwpr
-    #         microsoft-falcon.net/network-island: "azureregionalap"
-    #         router.falcon.io/port-name: "https"
-    #     spec:
-    #       type: ClusterIP
-    #       clusterIP: None
-    #       ports:
-    #       - name: http
-    #         port: 12012
-    #         protocol: TCP
-    #         targetPort: 12012
-    #       - name: https
-    #         port: 12443
-    #         protocol: TCP
-    #         targetPort: 12443
-    #       selector:
-    #         app: demo-app-rwpr
-    # - manifest:
-    #     apiVersion: multicluster.x-k8s.io/v1alpha1
-    #     kind: ServiceExport
-    #     metadata:
-    #       name: falcon-discovery-demo-app-rwpr
-    #       namespace: falcon-core
+    - manifest:
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: falcon-discovery-demo-app-rwpr
+          namespace: falcon-core
+          labels:
+            app: demo-app-rwpr
+            microsoft-falcon.net/network-island: "azureregionalap"
+            router.falcon.io/port-name: "https"
+        spec:
+          type: ClusterIP
+          clusterIP: None
+          ports:
+          - name: http
+            port: 12012
+            protocol: TCP
+            targetPort: 12012
+          - name: https
+            port: 12443
+            protocol: TCP
+            targetPort: 12443
+          selector:
+            app: demo-app-rwpr
+    - manifest:
+        apiVersion: multicluster.x-k8s.io/v1alpha1
+        kind: ServiceExport
+        metadata:
+          name: falcon-discovery-demo-app-rwpr
+          namespace: falcon-core
     - manifest:
         apiVersion: apps/v1
         kind: Deployment
@@ -89,7 +89,7 @@ spec:
               maxSurge: 0
               maxUnavailable: 1
             type: RollingUpdate
-          replicas: 5
+          replicas: 3
           selector:
             matchLabels:
               app: demo-app-rwpr
@@ -173,6 +173,7 @@ spec:
                 kubernetes.io/os: linux
                 scheduler.clusterfleet.io/ready: "true"
                 kubernetes.azure.com/mode: "user"
+                microsoft-falcon.net/std-cluster-id: "2"
     - manifest:
         apiVersion: policy/v1
         kind: PodDisruptionBudget
