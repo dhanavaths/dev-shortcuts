@@ -43,7 +43,7 @@ spec:
           namespace: falcon-core
           labels:
             app: demo-app-rwpr-clone
-            microsoft-falcon.net/network-island: "private"
+            microsoft-falcon.net/network-island: "azureregionalap"
             router.falcon.io/port-name: "https"
         spec:
           type: ClusterIP

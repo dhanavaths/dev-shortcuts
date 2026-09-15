@@ -23,7 +23,20 @@ function kube_local()
 {
 	export kube_context=""
 	if [ "$1" = "-ctx" ]; then
-		export kube_context="--context $2"
+		local _ctx="$2"
+		case "$_ctx" in
+			cc)
+				_ctx="kind-dev-control-cluster"
+				;;
+			sc1)
+				_ctx="kind-dev-sc000001-1"
+				;;
+			sc2)
+				_ctx="kind-dev-sc000001-2"
+				;;
+		esac
+
+		export kube_context="--context $_ctx"
 		echo "Using kube context: $kube_context"
 		${SCRIPTDIR}/eval.sh _local_kubectl ${@:3}
 	else

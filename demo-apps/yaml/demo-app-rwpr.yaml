@@ -11,8 +11,8 @@ spec:
   schedulingStrategy:
     preferredSliceStrategy:
       minSlice: 2
-      minSliceSize: 25
-    slicePreference: NoSlice
+      minSliceSize: 15
+    slicePreference: AlwaysSlice
   rolloutStrategy:
     type: ReplicasWeightedProgressiveRollout
     replicasWeightedProgressiveRollout:
@@ -22,10 +22,12 @@ spec:
         apiVersion: v1
         kind: Service
         metadata:
-          name: demo-app-rwpr-clip
+          name: demo-app-rwpr
           namespace: falcon-core
           labels:
             app: demo-app-rwpr
+            router.falcon.io/port-name: "https"
+            microsoft-falcon.net/network-island: "azureregionalap"
         spec:
           type: ClusterIP
           ports:
@@ -33,38 +35,42 @@ spec:
             port: 12002
             protocol: TCP
             targetPort: 12012           
-          selector:
-            app: demo-app-rwpr
-    - manifest:
-        apiVersion: v1
-        kind: Service
-        metadata:
-          name: falcon-discovery-demo-app-rwpr
-          namespace: falcon-core
-          labels:
-            app: demo-app-rwpr
-            microsoft-falcon.net/network-island: "private"
-            router.falcon.io/port-name: "https"
-        spec:
-          type: ClusterIP
-          clusterIP: None
-          ports:
-          - name: http
-            port: 12012
-            protocol: TCP
-            targetPort: 12012
           - name: https
             port: 12443
             protocol: TCP
-            targetPort: 12443
+            targetPort: 12443           
           selector:
             app: demo-app-rwpr
-    - manifest:
-        apiVersion: multicluster.x-k8s.io/v1alpha1
-        kind: ServiceExport
-        metadata:
-          name: falcon-discovery-demo-app-rwpr
-          namespace: falcon-core
+    # - manifest:
+    #     apiVersion: v1
+    #     kind: Service
+    #     metadata:
+    #       name: falcon-discovery-demo-app-rwpr
+    #       namespace: falcon-core
+    #       labels:
+    #         app: demo-app-rwpr
+    #         microsoft-falcon.net/network-island: "azureregionalap"
+    #         router.falcon.io/port-name: "https"
+    #     spec:
+    #       type: ClusterIP
+    #       clusterIP: None
+    #       ports:
+    #       - name: http
+    #         port: 12012
+    #         protocol: TCP
+    #         targetPort: 12012
+    #       - name: https
+    #         port: 12443
+    #         protocol: TCP
+    #         targetPort: 12443
+    #       selector:
+    #         app: demo-app-rwpr
+    # - manifest:
+    #     apiVersion: multicluster.x-k8s.io/v1alpha1
+    #     kind: ServiceExport
+    #     metadata:
+    #       name: falcon-discovery-demo-app-rwpr
+    #       namespace: falcon-core
     - manifest:
         apiVersion: apps/v1
         kind: Deployment
@@ -83,7 +89,7 @@ spec:
               maxSurge: 0
               maxUnavailable: 1
             type: RollingUpdate
-          replicas: 3
+          replicas: 5
           selector:
             matchLabels:
               app: demo-app-rwpr
@@ -109,12 +115,15 @@ spec:
                   - "100s"
                   - --idle-timeout
                   - "100s"
+                  # - --debug-handler-logs
+                  # - "false"
                 env:
                 - name: TIMESTAMP
                   value: "DEPLOYMENT_TIMESTAMP"
-                - name: GODEBUG
-                  value: "http2debug=2"
+                # - name: GODEBUG
+                #   value: "http2debug=2"
                 image: demo-app:DEPLOYMENT_IMAGE_VERSION
+                imagePullPolicy: Always
                 name: demo-app-rwpr
                 ports:
                 - containerPort: 12012
@@ -150,10 +159,10 @@ spec:
                 resources:
                   requests:
                     cpu: 1000m
-                    memory: 100Mi
+                    memory: 1Gi
                   limits:
                     cpu: 1000m
-                    memory: 100Mi
+                    memory: 1Gi
               dnsPolicy: ClusterFirst
               restartPolicy: Always
               volumes:
@@ -164,3 +173,14 @@ spec:
                 kubernetes.io/os: linux
                 scheduler.clusterfleet.io/ready: "true"
                 kubernetes.azure.com/mode: "user"
+    - manifest:
+        apiVersion: policy/v1
+        kind: PodDisruptionBudget
+        metadata:
+          name: demo-app-rwpr-pdb
+          namespace: falcon-core
+        spec:
+          maxUnavailable: 1
+          selector:
+            matchLabels:
+              app: demo-app-rwpr
