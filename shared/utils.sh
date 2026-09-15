@@ -5,6 +5,9 @@ source "${SCRIPTDIR}/../shared/colors.sh"
 function get_namespace(){
 	local _namespace=$1
 	case $1 in
+		so)
+			_namespace="submariner-operator"
+			;;
 		ks)
 			_namespace="kube-system"
 			;;

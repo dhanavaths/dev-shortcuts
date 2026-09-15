@@ -149,6 +149,15 @@ function is_app_custom_subresource() {
 function kpverb()
 {
 	case $2 in
+		delpod)
+			kubectl $kube_context $kube_config -n submariner-operator get pods -owide
+			kubectl $kube_context $kube_config -n submariner-operator get lease -owide
+			echo -e -n "${YELLOW}Enter name of the pod to DELETE:${DEFAULTCOLOR} "
+			read pod_name_to_delete
+			if [ -n "$pod_name_to_delete" ]; then
+				kubectl $kube_context $kube_config -n submariner-operator delete pod $pod_name_to_delete
+			fi			
+			;;	
 		test-datapath)
 			# kprod xe test-datadir sharedprod-7b4cfd48fb-4snm9
 			local dataPath="C:\\pods\\datafolders\\$OPT_NAMESPACE_NAME.$3\\aplusranker-prod\\en-us\\Nets\\Darwin\\BigAnswers\\Dynamic\\ProdV4"
