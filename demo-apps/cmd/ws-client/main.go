@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	wsURL := flag.String("url", "wss://127.0.0.1:10001/ws", "websocket URL")
+	wsURL := flag.String("url", "wss://127.0.0.1:10001/falcon-core.demo-app-rwpr/ws", "websocket URL")
 	message := flag.String("message", "ping", "message payload to send")
 	count := flag.Int("count", 10, "number of ping messages to send")
 	interval := flag.Duration("interval", time.Second, "delay between messages")
