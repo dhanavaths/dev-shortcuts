@@ -17,7 +17,7 @@ if [ "$MSYSTEM" = "MINGW64" ]; then
         EXPLORER_COMPATIBLE_WORKSPACE_DIR="C:\\workspace"
     fi
     JQ_CMD="jq-win64.exe"
-    export PATH="$PATH:/c/Program Files/SPython/tools"
+    export PATH="/c/Program Files/SPython/tools:$PATH"
     PYTHON_CMD="python"
 else
     # WSL settings
