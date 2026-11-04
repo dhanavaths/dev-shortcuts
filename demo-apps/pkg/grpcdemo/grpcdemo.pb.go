@@ -109,6 +109,166 @@ func (x *PingReply) GetMessage() string {
 	return ""
 }
 
+type SyncRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SyncRequest) Reset() {
+	*x = SyncRequest{}
+	mi := &file_proto_grpcdemo_grpcdemo_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SyncRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SyncRequest) ProtoMessage() {}
+
+func (x *SyncRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_grpcdemo_grpcdemo_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SyncRequest.ProtoReflect.Descriptor instead.
+func (*SyncRequest) Descriptor() ([]byte, []int) {
+	return file_proto_grpcdemo_grpcdemo_proto_rawDescGZIP(), []int{2}
+}
+
+type SyncReply struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SyncReply) Reset() {
+	*x = SyncReply{}
+	mi := &file_proto_grpcdemo_grpcdemo_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SyncReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SyncReply) ProtoMessage() {}
+
+func (x *SyncReply) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_grpcdemo_grpcdemo_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SyncReply.ProtoReflect.Descriptor instead.
+func (*SyncReply) Descriptor() ([]byte, []int) {
+	return file_proto_grpcdemo_grpcdemo_proto_rawDescGZIP(), []int{3}
+}
+
+type IncRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Counter       int64                  `protobuf:"varint,1,opt,name=counter,proto3" json:"counter,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IncRequest) Reset() {
+	*x = IncRequest{}
+	mi := &file_proto_grpcdemo_grpcdemo_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IncRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IncRequest) ProtoMessage() {}
+
+func (x *IncRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_grpcdemo_grpcdemo_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IncRequest.ProtoReflect.Descriptor instead.
+func (*IncRequest) Descriptor() ([]byte, []int) {
+	return file_proto_grpcdemo_grpcdemo_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *IncRequest) GetCounter() int64 {
+	if x != nil {
+		return x.Counter
+	}
+	return 0
+}
+
+type IncReply struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Counter       int64                  `protobuf:"varint,1,opt,name=counter,proto3" json:"counter,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IncReply) Reset() {
+	*x = IncReply{}
+	mi := &file_proto_grpcdemo_grpcdemo_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IncReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IncReply) ProtoMessage() {}
+
+func (x *IncReply) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_grpcdemo_grpcdemo_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IncReply.ProtoReflect.Descriptor instead.
+func (*IncReply) Descriptor() ([]byte, []int) {
+	return file_proto_grpcdemo_grpcdemo_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *IncReply) GetCounter() int64 {
+	if x != nil {
+		return x.Counter
+	}
+	return 0
+}
+
 type StreamRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
@@ -118,7 +278,7 @@ type StreamRequest struct {
 
 func (x *StreamRequest) Reset() {
 	*x = StreamRequest{}
-	mi := &file_proto_grpcdemo_grpcdemo_proto_msgTypes[2]
+	mi := &file_proto_grpcdemo_grpcdemo_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -130,7 +290,7 @@ func (x *StreamRequest) String() string {
 func (*StreamRequest) ProtoMessage() {}
 
 func (x *StreamRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_grpcdemo_grpcdemo_proto_msgTypes[2]
+	mi := &file_proto_grpcdemo_grpcdemo_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -143,7 +303,7 @@ func (x *StreamRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamRequest.ProtoReflect.Descriptor instead.
 func (*StreamRequest) Descriptor() ([]byte, []int) {
-	return file_proto_grpcdemo_grpcdemo_proto_rawDescGZIP(), []int{2}
+	return file_proto_grpcdemo_grpcdemo_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *StreamRequest) GetMessage() string {
@@ -163,7 +323,7 @@ type StreamReply struct {
 
 func (x *StreamReply) Reset() {
 	*x = StreamReply{}
-	mi := &file_proto_grpcdemo_grpcdemo_proto_msgTypes[3]
+	mi := &file_proto_grpcdemo_grpcdemo_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -175,7 +335,7 @@ func (x *StreamReply) String() string {
 func (*StreamReply) ProtoMessage() {}
 
 func (x *StreamReply) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_grpcdemo_grpcdemo_proto_msgTypes[3]
+	mi := &file_proto_grpcdemo_grpcdemo_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -188,7 +348,7 @@ func (x *StreamReply) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamReply.ProtoReflect.Descriptor instead.
 func (*StreamReply) Descriptor() ([]byte, []int) {
-	return file_proto_grpcdemo_grpcdemo_proto_rawDescGZIP(), []int{3}
+	return file_proto_grpcdemo_grpcdemo_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *StreamReply) GetSequence() int32 {
@@ -213,14 +373,23 @@ const file_proto_grpcdemo_grpcdemo_proto_rawDesc = "" +
 	"\vPingRequest\x12\x18\n" +
 	"\amessage\x18\x01 \x01(\tR\amessage\"%\n" +
 	"\tPingReply\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage\")\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\"\r\n" +
+	"\vSyncRequest\"\v\n" +
+	"\tSyncReply\"&\n" +
+	"\n" +
+	"IncRequest\x12\x18\n" +
+	"\acounter\x18\x01 \x01(\x03R\acounter\"$\n" +
+	"\bIncReply\x12\x18\n" +
+	"\acounter\x18\x01 \x01(\x03R\acounter\")\n" +
 	"\rStreamRequest\x12\x18\n" +
 	"\amessage\x18\x01 \x01(\tR\amessage\"C\n" +
 	"\vStreamReply\x12\x1a\n" +
 	"\bsequence\x18\x01 \x01(\x05R\bsequence\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage2\x8b\x01\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage2\xf0\x01\n" +
 	"\x0fGrpcDemoService\x122\n" +
-	"\x04Ping\x12\x15.grpcdemo.PingRequest\x1a\x13.grpcdemo.PingReply\x12D\n" +
+	"\x04Ping\x12\x15.grpcdemo.PingRequest\x1a\x13.grpcdemo.PingReply\x122\n" +
+	"\x04Sync\x12\x15.grpcdemo.SyncRequest\x1a\x13.grpcdemo.SyncReply\x12/\n" +
+	"\x03Inc\x12\x14.grpcdemo.IncRequest\x1a\x12.grpcdemo.IncReply\x12D\n" +
 	"\x0eStreamMessages\x12\x17.grpcdemo.StreamRequest\x1a\x15.grpcdemo.StreamReply(\x010\x01B\x17Z\x15demo-app/pkg/grpcdemob\x06proto3"
 
 var (
@@ -235,20 +404,28 @@ func file_proto_grpcdemo_grpcdemo_proto_rawDescGZIP() []byte {
 	return file_proto_grpcdemo_grpcdemo_proto_rawDescData
 }
 
-var file_proto_grpcdemo_grpcdemo_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_proto_grpcdemo_grpcdemo_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_proto_grpcdemo_grpcdemo_proto_goTypes = []any{
 	(*PingRequest)(nil),   // 0: grpcdemo.PingRequest
 	(*PingReply)(nil),     // 1: grpcdemo.PingReply
-	(*StreamRequest)(nil), // 2: grpcdemo.StreamRequest
-	(*StreamReply)(nil),   // 3: grpcdemo.StreamReply
+	(*SyncRequest)(nil),   // 2: grpcdemo.SyncRequest
+	(*SyncReply)(nil),     // 3: grpcdemo.SyncReply
+	(*IncRequest)(nil),    // 4: grpcdemo.IncRequest
+	(*IncReply)(nil),      // 5: grpcdemo.IncReply
+	(*StreamRequest)(nil), // 6: grpcdemo.StreamRequest
+	(*StreamReply)(nil),   // 7: grpcdemo.StreamReply
 }
 var file_proto_grpcdemo_grpcdemo_proto_depIdxs = []int32{
 	0, // 0: grpcdemo.GrpcDemoService.Ping:input_type -> grpcdemo.PingRequest
-	2, // 1: grpcdemo.GrpcDemoService.StreamMessages:input_type -> grpcdemo.StreamRequest
-	1, // 2: grpcdemo.GrpcDemoService.Ping:output_type -> grpcdemo.PingReply
-	3, // 3: grpcdemo.GrpcDemoService.StreamMessages:output_type -> grpcdemo.StreamReply
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
+	2, // 1: grpcdemo.GrpcDemoService.Sync:input_type -> grpcdemo.SyncRequest
+	4, // 2: grpcdemo.GrpcDemoService.Inc:input_type -> grpcdemo.IncRequest
+	6, // 3: grpcdemo.GrpcDemoService.StreamMessages:input_type -> grpcdemo.StreamRequest
+	1, // 4: grpcdemo.GrpcDemoService.Ping:output_type -> grpcdemo.PingReply
+	3, // 5: grpcdemo.GrpcDemoService.Sync:output_type -> grpcdemo.SyncReply
+	5, // 6: grpcdemo.GrpcDemoService.Inc:output_type -> grpcdemo.IncReply
+	7, // 7: grpcdemo.GrpcDemoService.StreamMessages:output_type -> grpcdemo.StreamReply
+	4, // [4:8] is the sub-list for method output_type
+	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -265,7 +442,7 @@ func file_proto_grpcdemo_grpcdemo_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_grpcdemo_grpcdemo_proto_rawDesc), len(file_proto_grpcdemo_grpcdemo_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

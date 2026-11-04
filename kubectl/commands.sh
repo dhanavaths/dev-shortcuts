@@ -415,6 +415,54 @@ function kpverb()
 				kpresource $1 exec -it $3 -- ${@:4}
 			fi
 			;;
+		debug|dbg)
+			if [[ -z "$3" ]]; then
+				echo "debug   : k <ns> debug <pod-name> [target-container] [image] [-- cmd]"
+				return
+			fi
+			local _pod="$3"
+			local _target="$4"
+			local _image="mcr.microsoft.com/azurelinux/busybox:1.36"
+			local _cmd="/bin/sh"
+			if [[ -n "$5" ]]; then
+				_image="$5"
+			fi
+			if [[ "$6" = "--" ]]; then
+				_cmd="${@:7}"
+			fi
+			if [[ -z "$_target" ]]; then
+				resource_list=$(kubectl $kube_context $kube_config -n $1 get pod $_pod -o jsonpath='{range .spec.containers[*]}{.name}{"\n"}{end}' | nl -v 0)
+				select_item_from_resource_list "CONTAINER"
+				_target=$(echo "$RESOURCE_LIST_SELECTED_NAME")
+			fi
+			if [[ -z "$_target" ]]; then
+				kpresource $1 debug -it $_pod --image=$_image -- $_cmd
+			else
+				kpresource $1 debug -it $_pod --image=$_image --target=$_target -- $_cmd
+			fi
+			;;
+		debug-copy)
+			if [[ -z "$3" ]]; then
+				echo "debug   : k <ns> debug-copy <pod-name> [image] [-- cmd]"
+				return
+			fi
+			local _pod="$3"
+			local _image="mcr.microsoft.com/azurelinux/busybox:1.36"
+			local _cmd="/bin/sh"
+			if [[ -n "$4" ]]; then
+				_image="$4"
+			fi
+			if [[ "$5" = "--" ]]; then
+				_cmd="${@:6}"
+			fi
+			# Ephemeral containers cannot be removed individually, so debug against a
+			# throwaway pod copy and delete it on exit (share-processes exposes all
+			# processes of the original containers to the debug container).
+			local _debug_pod="local-debug"
+			trap "echo -e '${YELLOW}Removing debug pod $_debug_pod...${DEFAULTCOLOR}' >&2; kubectl $kube_context $kube_config -n $1 delete pod $_debug_pod --ignore-not-found >&2" EXIT INT TERM
+			echo "kubectl $kube_context $kube_config -n $1 debug -it $_pod --image=$_image --copy-to=$_debug_pod --share-processes -- $_cmd" >&2
+			kubectl $kube_context $kube_config -n $1 debug -it $_pod --image=$_image --copy-to=$_debug_pod --share-processes -- $_cmd
+			;;
 		df|datafolder)
 			local folder_list=${@:3}
 			for folder in $folder_list; do
@@ -583,6 +631,8 @@ function kpverb()
 			kpverb - describe
 			kpverb - apply
 			kpverb - exec
+			kpverb - debug
+			kpverb - debug-copy
 			kpverb - restart
 			echo "cl SubID: k - clsub"
 			echo "namespaced objects: k <ns> namespaced"

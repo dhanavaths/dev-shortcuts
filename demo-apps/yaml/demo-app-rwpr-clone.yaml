@@ -117,7 +117,7 @@ spec:
                 livenessProbe:
                   failureThreshold: 3
                   httpGet:
-                    path: /keepalive
+                    path: /liveness
                     port: http
                     scheme: HTTP
                   initialDelaySeconds: 1

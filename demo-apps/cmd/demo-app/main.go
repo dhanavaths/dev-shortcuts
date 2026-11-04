@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"runtime"
 	"sort"
 	"strings"
@@ -18,14 +20,23 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"go.uber.org/automaxprocs/maxprocs"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/reflection"
 
 	pb "demo-app/pkg/grpcdemo"
 )
+
+func newGrpcServer(options ...grpc.ServerOption) *grpc.Server {
+	grpcServer := grpc.NewServer(options...)
+	pb.RegisterGrpcDemoServiceServer(grpcServer, pb.NewGrpcDemoServiceImpl())
+	reflection.Register(grpcServer)
+	return grpcServer
+}
 
 // socketRcvBufBytes matches Envoy's wide transport boundary so the kernel
 // receive buffer can absorb large bursts (e.g. 158KB chunks) without stalling.
@@ -106,6 +117,7 @@ var idleTimeout = 120 * time.Second
 var startupTime = time.Now()
 var tlsCertPath = "/falcon-managed-secrets/ssl-cert.pem"
 var debugHandlerLogs bool
+var logHandlerCallCounts bool
 
 var wsUpgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
@@ -142,6 +154,7 @@ const neverIdleTimeout = 100 * 365 * 24 * time.Hour
 // populated once at package init and only read afterwards, so concurrent
 // increments touch distinct *atomic.Int64 values without any lock.
 var handlerCallCounters = map[string]*atomic.Int64{
+	"keepaliveHandler":      {},
 	"livenessHandler":       {},
 	"readinessHandler":      {},
 	"dynamicPayloadHandler": {},
@@ -150,8 +163,23 @@ var handlerCallCounters = map[string]*atomic.Int64{
 	"metricsHandler":        {},
 }
 
+// GetNumWorkers returns the number of workers to use, bounded by the lesser of
+// the current GOMAXPROCS setting and the number of logical CPUs the process can
+// see.
+func GetNumWorkers() int {
+	maxProcs := runtime.GOMAXPROCS(0)
+	numCPU := runtime.NumCPU()
+	if maxProcs < numCPU {
+		return maxProcs
+	}
+	return numCPU
+}
+
 // countHandlerCall atomically increments the call counter for the named handler.
 func countHandlerCall(handler string) {
+	if !logHandlerCallCounts {
+		return
+	}
 	if c, ok := handlerCallCounters[handler]; ok {
 		c.Add(1)
 	}
@@ -208,6 +236,39 @@ func logHandlerStart(handler string, r *http.Request) {
 	debugLog("handler=%s method=%s path=%s remote=%s proto=%s", handler, r.Method, r.URL.Path, r.RemoteAddr, r.Proto)
 }
 
+func drainRequestBody(body io.ReadCloser) (int64, error) {
+	if body == nil {
+		return 0, nil
+	}
+	n, err := io.Copy(io.Discard, body)
+	return n, errors.Join(err, body.Close())
+}
+
+func keepaliveHandler(w http.ResponseWriter, r *http.Request) {
+	logHandlerStart("keepaliveHandler", r)
+	action := requestNonLeaderAction()
+	if action == nonLeaderActionClose || action == nonLeaderActionSkipPortBinding {
+		handleNonLeaderFault(w, r, action)
+		return
+	}
+	n, err := drainRequestBody(r.Body)
+	switch {
+	case r.Context().Err() != nil:
+		debugLog("keepalive: client canceled request after %d bytes: %v", n, r.Context().Err())
+		return
+	case err != nil:
+		logf("keepalive: error draining request body after %d bytes: %v", n, err)
+		http.Error(w, "failed to read request body", http.StatusBadRequest)
+		return
+	case n > 0:
+		debugLog("keepalive: drained %d bytes of request body", n)
+	}
+	if handleNonLeaderFault(w, r, action) {
+		return
+	}
+	fmt.Fprintf(w, "ok")
+}
+
 func livenessHandler(w http.ResponseWriter, r *http.Request) {
 	logHandlerStart("livenessHandler", r)
 	if failLivenessProbe {
@@ -256,8 +317,7 @@ func syncHandler(w http.ResponseWriter, r *http.Request) {
 	logHandlerStart("syncHandler", r)
 	// Drain and discard the request payload so the connection can be reused.
 	if r.Body != nil {
-		n, err := io.Copy(io.Discard, r.Body)
-		r.Body.Close()
+		n, err := drainRequestBody(r.Body)
 		switch {
 		case err != nil && r.Context().Err() != nil:
 			// The client canceled the stream (HTTP/2 RST_STREAM CANCEL) or
@@ -298,15 +358,20 @@ func syncHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func websocketHandler(w http.ResponseWriter, r *http.Request) {
-	logHandlerStart("websocketHandler", r)
+	countHandlerCall("websocketHandler")
+	logf("[INFO] handler=websocketHandler method=%s path=%s remote=%s proto=%s", r.Method, r.URL.Path, r.RemoteAddr, r.Proto)
 	conn, err := wsUpgrader.Upgrade(w, r, nil)
 	if err != nil {
-		debugLog("websocket upgrade failed: %v", err)
+		logf("[ERROR] websocket upgrade failed: %v", err)
 		return
 	}
+	messageCount := 0
+	defer func() {
+		logf("[INFO] websocket connection closed: remote=%s messages_received=%d", r.RemoteAddr, messageCount)
+	}()
 	defer conn.Close()
 
-	debugLog("websocket connected: remote=%s", r.RemoteAddr)
+	logf("[INFO] websocket connected: remote=%s", r.RemoteAddr)
 
 	done := make(chan struct{})
 	defer close(done)
@@ -327,7 +392,7 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			case <-ticker.C:
 				if err := conn.WriteControl(websocket.PingMessage, []byte("ping"), time.Now().Add(wsWriteWait)); err != nil {
-					debugLog("websocket ping write failed: %v", err)
+					logf("[ERROR] websocket ping write failed: %v", err)
 					return
 				}
 			}
@@ -338,9 +403,9 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 		msgType, msg, err := conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseNoStatusReceived) {
-				debugLog("websocket closed unexpectedly: %v", err)
+				logf("[ERROR] websocket closed unexpectedly: messages_received=%d error=%v", messageCount, err)
 			} else {
-				debugLog("websocket stream closed: %v", err)
+				logf("[INFO] websocket stream closed: messages_received=%d error=%v", messageCount, err)
 			}
 			return
 		}
@@ -348,10 +413,11 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 		if msgType != websocket.TextMessage && msgType != websocket.BinaryMessage {
 			continue
 		}
+		messageCount++
 
-		pong := append([]byte("Pong: "), msg...)
+		pong := append([]byte(fmt.Sprintf("Pong from %s: ", os.Getenv("POD__ID"))), msg...)
 		if err := conn.WriteMessage(msgType, pong); err != nil {
-			debugLog("websocket pong write failed: %v", err)
+			logf("[ERROR] websocket pong write failed: %v", err)
 			return
 		}
 	}
@@ -413,11 +479,36 @@ func metricsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func runWithGrpcSecureServer() {
+func newRESTMux() *http.ServeMux {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/keepalive", keepaliveHandler)
+	mux.HandleFunc("/liveness", livenessHandler)
+	mux.HandleFunc("/ready", readinessHandler)
+	mux.HandleFunc("/dynamic_payload", dynamicPayloadHandler)
+	mux.HandleFunc("/sync", syncHandler)
+	mux.HandleFunc("/ws", websocketHandler)
+	mux.HandleFunc("/", metricsHandler)
+	return mux
+}
+
+func serveHTTP(ctx context.Context, server *http.Server, listener net.Listener) error {
+	stop := context.AfterFunc(ctx, func() {
+		if err := server.Close(); err != nil {
+			logf("HTTP server shutdown: %v", err)
+		}
+	})
+	defer stop()
+	err := server.Serve(listener)
+	if errors.Is(err, http.ErrServerClosed) {
+		return nil
+	}
+	return err
+}
+
+func runWithGrpcSecureServer(ctx context.Context) error {
 	cert, err := tls.LoadX509KeyPair(tlsCertPath, tlsCertPath)
 	if err != nil {
-		fmt.Printf("Failed to load TLS cert for gRPC: %v\n", err)
-		return
+		return fmt.Errorf("load TLS certificate for gRPC: %w", err)
 	}
 
 	tlsConfig := &tls.Config{
@@ -428,17 +519,11 @@ func runWithGrpcSecureServer() {
 
 	// gRPC server
 	creds := credentials.NewTLS(tlsConfig)
-	grpcServer := grpc.NewServer(grpc.Creds(creds))
-	pb.RegisterGrpcDemoServiceServer(grpcServer, pb.NewGrpcDemoServiceImpl())
+	grpcServer := newGrpcServer(grpc.Creds(creds))
+	defer grpcServer.Stop()
 
 	// REST mux
-	mux := http.NewServeMux()
-	mux.HandleFunc("/keepalive", livenessHandler)
-	mux.HandleFunc("/ready", readinessHandler)
-	mux.HandleFunc("/dynamic_payload", dynamicPayloadHandler)
-	mux.HandleFunc("/sync", syncHandler)
-	mux.HandleFunc("/ws", websocketHandler)
-	mux.HandleFunc("/", metricsHandler)
+	mux := newRESTMux()
 	// Use a more robust check for gRPC
 	multiplexHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Check for gRPC: HTTP/2 AND Content-Type application/grpc
@@ -462,9 +547,10 @@ func runWithGrpcSecureServer() {
 	serverLogger := log.New(os.Stdout, "[HTTP-SERVER] ", log.LstdFlags|log.Lshortfile)
 	_ = serverLogger
 	httpServer := &http.Server{
-		Addr:      fmt.Sprintf("0.0.0.0:%s", httpSecurePort),
-		Handler:   handlerWithH2C,
-		TLSConfig: tlsConfig,
+		Addr:        fmt.Sprintf("0.0.0.0:%s", httpSecurePort),
+		Handler:     handlerWithH2C,
+		TLSConfig:   tlsConfig,
+		ConnContext: withRetryConnection,
 		// ErrorLog:     serverLogger,
 		ReadTimeout:  readTimeout,
 		WriteTimeout: writeTimeout,
@@ -482,36 +568,29 @@ func runWithGrpcSecureServer() {
 	// connections are served over HTTP/2. Clients that skip ALPN and send the
 	// HTTP/2 preface with prior knowledge are still handled by the h2c wrapper.
 	if err := http2.ConfigureServer(httpServer, h2s); err != nil {
-		fmt.Printf("Failed to configure HTTP/2 on secure server: %v\n", err)
-		return
+		return fmt.Errorf("configure HTTP/2 on secure server: %w", err)
 	}
 
 	lis, err := listenOptimized(fmt.Sprintf("0.0.0.0:%s", httpSecurePort))
 	if err != nil {
-		fmt.Printf("Failed to listen on secure gRPC port %s: %v\n", httpSecurePort, err)
-		return
+		return fmt.Errorf("listen on secure gRPC port %s: %w", httpSecurePort, err)
 	}
 
-	tlsListener := tls.NewListener(lis, tlsConfig)
+	tlsListener := tls.NewListener(newConnectionListener(lis), tlsConfig)
 	fmt.Printf("gRPC+REST (TLS) server listening on port %v...\n", httpSecurePort)
-	if err := httpServer.Serve(tlsListener); err != nil {
-		fmt.Printf("Error starting gRPC+REST (TLS) server: %v\n", err)
+	if err := serveHTTP(ctx, httpServer, tlsListener); err != nil {
+		return fmt.Errorf("serve gRPC+REST (TLS): %w", err)
 	}
+	return nil
 }
 
-func runWithGrpcPlainServer() {
+func runWithGrpcPlainServer(ctx context.Context) error {
 	// gRPC server
-	grpcServer := grpc.NewServer()
-	pb.RegisterGrpcDemoServiceServer(grpcServer, pb.NewGrpcDemoServiceImpl())
+	grpcServer := newGrpcServer()
+	defer grpcServer.Stop()
 
 	// REST mux
-	mux := http.NewServeMux()
-	mux.HandleFunc("/keepalive", livenessHandler)
-	mux.HandleFunc("/ready", readinessHandler)
-	mux.HandleFunc("/dynamic_payload", dynamicPayloadHandler)
-	mux.HandleFunc("/sync", syncHandler)
-	mux.HandleFunc("/ws", websocketHandler)
-	mux.HandleFunc("/", metricsHandler)
+	mux := newRESTMux()
 
 	// Multiplexed handler: route gRPC by Content-Type, everything else to REST
 	multiplexHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -523,7 +602,7 @@ func runWithGrpcPlainServer() {
 	})
 
 	serverAddr := fmt.Sprintf("0.0.0.0:%s", httpPort)
-	httpServer := &http.Server{Addr: serverAddr}
+	httpServer := &http.Server{Addr: serverAddr, ConnContext: withRetryConnection}
 
 	if http1Only {
 		httpServer.Handler = mux
@@ -536,16 +615,22 @@ func runWithGrpcPlainServer() {
 
 	lis, err := listenOptimized(serverAddr)
 	if err != nil {
-		fmt.Printf("Failed to listen on plain port %s: %v\n", httpPort, err)
-		return
+		return fmt.Errorf("listen on plain port %s: %w", httpPort, err)
 	}
-	if err := httpServer.Serve(lis); err != nil {
-		fmt.Printf("Error starting plain server: %v\n", err)
+	if err := serveHTTP(ctx, httpServer, newConnectionListener(lis)); err != nil {
+		return fmt.Errorf("serve plain server: %w", err)
 	}
+	return nil
 }
 
 func main() {
-	runtime.GOMAXPROCS(2)
+	// Align GOMAXPROCS with the CPU quota the process is actually allowed to use
+	// (e.g. a Kubernetes/cgroup CPU limit) instead of the host's total core
+	// count. maxprocs.Set reads the cgroup quota and sets GOMAXPROCS to the
+	// derived core count, falling back to runtime defaults when unconstrained.
+	if _, err := maxprocs.Set(maxprocs.Logger(log.Printf)); err != nil {
+		log.Printf("failed to set GOMAXPROCS from cgroup quota: %v", err)
+	}
 	// Resolve the hostname once and disable the standard logger's own flags so
 	// it does not emit an uncolored timestamp; logf() composes the colored line
 	// (green hostname, orange timestamp, white message) itself.
@@ -563,8 +648,18 @@ func main() {
 	flag.DurationVar(&writeTimeout, "write-timeout", 10*time.Second, "HTTP server write timeout")
 	flag.DurationVar(&idleTimeout, "idle-timeout", 120*time.Second, "HTTP server idle timeout")
 	flag.BoolVar(&debugHandlerLogs, "debug-handler-logs", false, "enable debug logs at handler entry")
+	flag.BoolVar(&logHandlerCallCounts, "log-handler-call-counts", false, "log handler call counts every 30 seconds")
+	flag.BoolVar(&leaderElectionEnabled, "leader-election", false, "enable Kubernetes Lease-based leader election")
+	flag.StringVar(&leaderElectionNamespace, "leader-election-namespace", os.Getenv("POD_NAMESPACE"), "lease namespace (defaults to the pod namespace)")
+	flag.StringVar(&leaderElectionLeaseName, "leader-election-lease-name", "demo-app-leader", "lease name shared by election participants in this cluster")
+	flag.BoolVar(&closeConnectionFromNonLeader, "close-connection-from-non-leader", false, "legacy alias for --non-leader-action=close (requires --leader-election)")
+	flag.StringVar(&nonLeaderAction, "non-leader-action", nonLeaderActionNone, "non-leader action: none, close, 503, close/503 (50% each) for /keepalive, or skip-port-binding for all server ports (requires --leader-election)")
 
 	flag.Parse()
+
+	if err := validateRetryOptions(leaderElectionEnabled, closeConnectionFromNonLeader, nonLeaderAction); err != nil {
+		log.Fatal(err)
+	}
 
 	if startupDelay > 0 {
 		fmt.Printf("initial delay: %v\n", startupDelay)
@@ -573,9 +668,13 @@ func main() {
 	}
 
 	fmt.Printf("settings: http-port: %v, http1-only: %v, fail-liveness-probe: %v, fail-readiness-probe: %v\n", httpPort, http1Only, failLivenessProbe, failReadinessProbe)
-	startHandlerCounterReporter()
-	if httpSecurePort != "" {
-		go runWithGrpcSecureServer()
+	fmt.Printf("cpu: NumCPU=%d GOMAXPROCS=%d num-workers=%d\n", runtime.NumCPU(), runtime.GOMAXPROCS(0), GetNumWorkers())
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	if logHandlerCallCounts {
+		startHandlerCounterReporter()
 	}
-	runWithGrpcPlainServer()
+	if err := runApp(ctx); err != nil {
+		log.Fatal(err)
+	}
 }
