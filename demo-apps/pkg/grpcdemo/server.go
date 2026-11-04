@@ -27,6 +27,16 @@ func (s *GrpcDemoServiceImpl) Ping(ctx context.Context, req *PingRequest) (*Ping
 	}, nil
 }
 
+// Sync completes a unary request without application payloads.
+func (s *GrpcDemoServiceImpl) Sync(context.Context, *SyncRequest) (*SyncReply, error) {
+	return &SyncReply{}, nil
+}
+
+// Inc returns the request counter incremented by one.
+func (s *GrpcDemoServiceImpl) Inc(_ context.Context, req *IncRequest) (*IncReply, error) {
+	return &IncReply{Counter: req.GetCounter() + 1}, nil
+}
+
 // StreamMessages is a bidirectional streaming RPC that reads from the client
 // stream until it is closed and sends a reply for every incoming message.
 func (s *GrpcDemoServiceImpl) StreamMessages(stream grpc.BidiStreamingServer[StreamRequest, StreamReply]) error {

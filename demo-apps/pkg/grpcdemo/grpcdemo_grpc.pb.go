@@ -20,6 +20,8 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	GrpcDemoService_Ping_FullMethodName           = "/grpcdemo.GrpcDemoService/Ping"
+	GrpcDemoService_Sync_FullMethodName           = "/grpcdemo.GrpcDemoService/Sync"
+	GrpcDemoService_Inc_FullMethodName            = "/grpcdemo.GrpcDemoService/Inc"
 	GrpcDemoService_StreamMessages_FullMethodName = "/grpcdemo.GrpcDemoService/StreamMessages"
 )
 
@@ -31,6 +33,10 @@ const (
 type GrpcDemoServiceClient interface {
 	// Unary: returns a pong with the same message.
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingReply, error)
+	// Unary: completes without requiring a request or response payload.
+	Sync(ctx context.Context, in *SyncRequest, opts ...grpc.CallOption) (*SyncReply, error)
+	// Unary: returns the supplied counter incremented by one.
+	Inc(ctx context.Context, in *IncRequest, opts ...grpc.CallOption) (*IncReply, error)
 	// Bidirectional streaming: echoes a reply for every incoming stream message.
 	StreamMessages(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[StreamRequest, StreamReply], error)
 }
@@ -47,6 +53,26 @@ func (c *grpcDemoServiceClient) Ping(ctx context.Context, in *PingRequest, opts 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(PingReply)
 	err := c.cc.Invoke(ctx, GrpcDemoService_Ping_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *grpcDemoServiceClient) Sync(ctx context.Context, in *SyncRequest, opts ...grpc.CallOption) (*SyncReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SyncReply)
+	err := c.cc.Invoke(ctx, GrpcDemoService_Sync_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *grpcDemoServiceClient) Inc(ctx context.Context, in *IncRequest, opts ...grpc.CallOption) (*IncReply, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(IncReply)
+	err := c.cc.Invoke(ctx, GrpcDemoService_Inc_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -74,6 +100,10 @@ type GrpcDemoService_StreamMessagesClient = grpc.BidiStreamingClient[StreamReque
 type GrpcDemoServiceServer interface {
 	// Unary: returns a pong with the same message.
 	Ping(context.Context, *PingRequest) (*PingReply, error)
+	// Unary: completes without requiring a request or response payload.
+	Sync(context.Context, *SyncRequest) (*SyncReply, error)
+	// Unary: returns the supplied counter incremented by one.
+	Inc(context.Context, *IncRequest) (*IncReply, error)
 	// Bidirectional streaming: echoes a reply for every incoming stream message.
 	StreamMessages(grpc.BidiStreamingServer[StreamRequest, StreamReply]) error
 	mustEmbedUnimplementedGrpcDemoServiceServer()
@@ -88,6 +118,12 @@ type UnimplementedGrpcDemoServiceServer struct{}
 
 func (UnimplementedGrpcDemoServiceServer) Ping(context.Context, *PingRequest) (*PingReply, error) {
 	return nil, status.Error(codes.Unimplemented, "method Ping not implemented")
+}
+func (UnimplementedGrpcDemoServiceServer) Sync(context.Context, *SyncRequest) (*SyncReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method Sync not implemented")
+}
+func (UnimplementedGrpcDemoServiceServer) Inc(context.Context, *IncRequest) (*IncReply, error) {
+	return nil, status.Error(codes.Unimplemented, "method Inc not implemented")
 }
 func (UnimplementedGrpcDemoServiceServer) StreamMessages(grpc.BidiStreamingServer[StreamRequest, StreamReply]) error {
 	return status.Error(codes.Unimplemented, "method StreamMessages not implemented")
@@ -131,6 +167,42 @@ func _GrpcDemoService_Ping_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GrpcDemoService_Sync_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SyncRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GrpcDemoServiceServer).Sync(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GrpcDemoService_Sync_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GrpcDemoServiceServer).Sync(ctx, req.(*SyncRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GrpcDemoService_Inc_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IncRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GrpcDemoServiceServer).Inc(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GrpcDemoService_Inc_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GrpcDemoServiceServer).Inc(ctx, req.(*IncRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _GrpcDemoService_StreamMessages_Handler(srv interface{}, stream grpc.ServerStream) error {
 	return srv.(GrpcDemoServiceServer).StreamMessages(&grpc.GenericServerStream[StreamRequest, StreamReply]{ServerStream: stream})
 }
@@ -148,6 +220,14 @@ var GrpcDemoService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Ping",
 			Handler:    _GrpcDemoService_Ping_Handler,
+		},
+		{
+			MethodName: "Sync",
+			Handler:    _GrpcDemoService_Sync_Handler,
+		},
+		{
+			MethodName: "Inc",
+			Handler:    _GrpcDemoService_Inc_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

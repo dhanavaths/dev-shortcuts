@@ -66,11 +66,90 @@ spec:
           selector:
             app: demo-app-rwpr
     - manifest:
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: falcon-discovery-demo-app-rwpr-cmpl
+          namespace: falcon-core
+          labels:
+            app: demo-app-rwpr
+            microsoft-falcon.net/network-island: "azureregionalap"
+            router.falcon.io/port-name: "https"
+        spec:
+          type: ClusterIP
+          clusterIP: None
+          ports:
+          - name: http
+            port: 12012
+            protocol: TCP
+            targetPort: 12012
+          - name: https
+            port: 12443
+            protocol: TCP
+            targetPort: 12443
+          selector:
+            app: demo-app-rwpr
+    - manifest:
         apiVersion: multicluster.x-k8s.io/v1alpha1
         kind: ServiceExport
         metadata:
           name: falcon-discovery-demo-app-rwpr
           namespace: falcon-core
+    - manifest:
+        apiVersion: multicluster.x-k8s.io/v1alpha1
+        kind: ServiceExport
+        metadata:
+          name: falcon-discovery-demo-app-rwpr-cmpl
+          namespace: falcon-core
+    - manifest:
+        apiVersion: apis.clusterfleet.io/v1alpha1
+        kind: RoutingConfiguration
+        metadata:
+          name: demo-app-rwpr-kind
+          namespace: falcon-core
+        spec:
+          routing:
+            connection:
+              connectionPreference: require-tls
+              defaultHttpPort: 12443
+              httpVersion: http2
+            requests:
+              loadBalancingPolicy: random
+              retries:
+                enabled: false
+              timeoutInMilliseconds: 2100
+          routingClass: falcon-core.kind-router
+          serviceName: demo-app-rwpr
+    - manifest:
+        apiVersion: apis.clusterfleet.io/v1alpha1
+        kind: RoutingConfiguration
+        metadata:
+          name: demo-app-rwpr-cmpl
+          namespace: falcon-core
+        spec:
+          routing:
+            auth:
+              azure:
+                authentication:
+                  audience: 011e506f-0ea8-490d-8499-281be5072a39
+                  issuerTenants:
+                  - 975f013f-7f24-47e8-a7d3-abc4752bf346
+                authorization:
+                  clientIds:
+                  - 011e506f-0ea8-490d-8499-281be5072a39
+                  - 04b07795-8ddb-461a-bbee-02f9e1bf7b46
+                enabled: true
+            connection:
+              connectionPreference: require-tls
+              defaultHttpPort: 12443
+              httpVersion: http2
+            requests:
+              loadBalancingPolicy: random
+              retries:
+                enabled: false
+              timeoutInMilliseconds: 2100
+          routingClass: falcon-core.kind-router
+          serviceName: demo-app-rwpr-cmpl
     - manifest:
         apiVersion: apps/v1
         kind: Deployment
@@ -120,11 +199,19 @@ spec:
                 env:
                 - name: TIMESTAMP
                   value: "DEPLOYMENT_TIMESTAMP"
+                - name: POD__ID
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
                 # - name: GODEBUG
                 #   value: "http2debug=2"
                 image: demo-app:DEPLOYMENT_IMAGE_VERSION
                 imagePullPolicy: Always
                 name: demo-app-rwpr
+                lifecycle:
+                  preStop:
+                    exec:
+                      command: ["/bin/sh", "-c", "sleep 1"]
                 ports:
                 - containerPort: 12012
                   name: http
@@ -135,7 +222,7 @@ spec:
                 livenessProbe:
                   failureThreshold: 30
                   httpGet:
-                    path: /keepalive
+                    path: /liveness
                     port: http
                     scheme: HTTP
                   initialDelaySeconds: 1
@@ -165,6 +252,7 @@ spec:
                     memory: 1Gi
               dnsPolicy: ClusterFirst
               restartPolicy: Always
+              terminationGracePeriodSeconds: 150
               volumes:
                 - name: falcon-core-dev-ssl-cert-volume
                   secret:
@@ -173,7 +261,7 @@ spec:
                 kubernetes.io/os: linux
                 scheduler.clusterfleet.io/ready: "true"
                 kubernetes.azure.com/mode: "user"
-                microsoft-falcon.net/std-cluster-id: "2"
+                microsoft-falcon.net/std-cluster-id: "1"
     - manifest:
         apiVersion: policy/v1
         kind: PodDisruptionBudget

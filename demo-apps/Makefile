@@ -43,11 +43,13 @@ controllerName:=demo-app
 controllerBuildDir:=$(cmdDir)/demo-app
 controllerBuildFlags:=$(GOFLAGS)
 wsClientDir:=$(cmdDir)/ws-client
-WS_CLIENT_URL ?= wss://127.0.0.1:10001/ws
+WS_CLIENT_URL ?= wss://127.0.0.1:10001/falcon-core.demo-app-rwpr/ws
 WS_CLIENT_MESSAGE ?= ping
 WS_CLIENT_COUNT ?= 10
 WS_CLIENT_INTERVAL ?= 1s
+WS_CLIENT_PROTOCOL ?= both
 
+.PHONY: ws-client
 
 build-demo-app:
 	@echo "$(YELLOW)** Build: $(controllerName) $(DEFAULTCOLOR)"
@@ -55,7 +57,7 @@ build-demo-app:
 	@echo "$(GREEN)** Done:  $(outputDir)/$(controllerName) $(DEFAULTCOLOR)"
 
 ws-client:
-	@go run $(wsClientDir)/. -url $(WS_CLIENT_URL) -message "$(WS_CLIENT_MESSAGE)" -count $(WS_CLIENT_COUNT) -interval $(WS_CLIENT_INTERVAL)
+	@go run $(wsClientDir)/. -url $(WS_CLIENT_URL) -message "$(WS_CLIENT_MESSAGE)" -count $(WS_CLIENT_COUNT) -interval $(WS_CLIENT_INTERVAL) -protocol $(WS_CLIENT_PROTOCOL)
 
 docker-demo-app:
 	@echo ${CODE_DIR}

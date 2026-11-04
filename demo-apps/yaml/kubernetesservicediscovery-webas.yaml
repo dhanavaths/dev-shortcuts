@@ -1,0 +1,597 @@
+apiVersion: apis.clusterfleet.io/v1alpha1
+kind: Application
+metadata:
+  labels:
+    microsoft-falcon.net/ingress-required: 'true'
+  name: kubernetesservicediscovery-webas
+  namespace: falcon-core
+spec:
+  clusterSelectors: {}
+  priorityClassName: core
+  rollbackStrategy:
+    minReadyReplicas: 0
+    minReadySeconds: 0
+    progressDeadlineSeconds: 0
+    revisionHistoryLimit: 5
+  rolloutStrategy:
+    minAvailableReplicas: 100%
+    progressiveRollout:
+      maxAllowedClustersPastDeadline: 0
+      perClusterMinimumAvailableReplicasPct: 100%
+      perClusterRolloutDeadlineSeconds: 6375
+      progressiveRolloutWindowSize: 20%
+  schedulingStrategy:
+    preferredSliceStrategy:
+      minSlice: 2
+      minSliceSize: 5
+    slicePreference: NoSlice
+  version: '71464748'
+  workload:
+    - manifest:
+        apiVersion: v1
+        kind: ServiceAccount
+        metadata:
+          labels:
+            app.kubernetes.io/instance: falcon-core.kubernetesservicediscovery-webas
+            app.kubernetes.io/version: '71464748'
+          name: kubernetesservicediscovery-webas
+          namespace: falcon-core
+    - manifest:
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata:
+          name: kubernetesservicediscovery-webas
+        rules:
+          - apiGroups:
+              - ''
+            resources:
+              - pods
+            verbs:
+              - get
+              - list
+          - apiGroups:
+              - apps
+            resources:
+              - deployments
+            verbs:
+              - get
+              - list
+          - apiGroups:
+              - apis.clusterfleet.io
+              - discovery.k8s.io
+            resources:
+              - routingconfigurations
+              - endpointslices
+            verbs:
+              - list
+              - watch
+    - manifest:
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRoleBinding
+        metadata:
+          name: kubernetesservicediscovery-webas
+        roleRef:
+          apiGroup: rbac.authorization.k8s.io
+          kind: ClusterRole
+          name: kubernetesservicediscovery-webas
+        subjects:
+          - kind: ServiceAccount
+            name: falconfleet-falcon-core-sa
+            namespace: falcon-core
+    - manifest:
+        apiVersion: v1
+        data:
+          discoveryThrottling.json: |
+            {
+
+              "discoveryPodCount": 150,
+              "minPermitsPerPod": 5,
+              "headroomMultiplier": 1.2,
+              "knownClients": [
+                { "clientId": "AHPROBE", "expectedRegionalConnections": 150 }
+              ]
+            }
+          envoy.json: |
+            {
+
+              "Enabled": true,
+              "PeriodicUpdateIntervalInSeconds": 10,
+              "InitialDelayInSeconds": 60,
+              "RetryCount": 1,
+              "RetryBudgetPercent": 100,
+              "RetryMinConcurrency": 3
+            }
+          routingClass.json: |
+            {
+
+              "HardDependency": {
+                "RoutingClasses": [],
+                "RoutingClassPrefixes": []
+              }
+            }
+        kind: ConfigMap
+        metadata:
+          name: falcon-discovery-config-webas
+          namespace: falcon-core
+    - manifest:
+        apiVersion: v1
+        data:
+          DISCOVERY_THROTTLING_CONFIG_PATH: /config/discoveryThrottling.json
+          ENVOY_CONFIG_PATH: /config/envoy.json
+          ROUTING_CLASS_CONFIG_PATH: /config/routingClass.json
+          endpointCacheSettings__CachedEndpointsBuildIntervalInMilliseconds: '500'
+          endpointCacheSettings__CachedEndpointsStaleTimeInMilliseconds: '2000'
+          endpointCacheSettings__EndpointSlicesFullSyncIntervalInSeconds: '30'
+          endpointCacheSettings__EndpointSlicesFullSyncPageLimit: '300'
+          endpointCacheSettings__EndpointSlicesFullSyncStartDelayInSeconds: '300'
+          endpointCacheSettings__GetServiceResponseCacheMaxEntries: '4096'
+          endpointCacheSettings__GetServiceResponseCacheTtlInMilliseconds: '2000'
+          endpointCacheSettings__MaxAllowedStaleStateTimeInSeconds: '45'
+          endpointCacheSettings__RandomStalenessDelayForLivenessInSeconds: '15'
+          endpointCacheSettings__StalenessConsecutiveCycleThreshold: '3'
+          endpointCacheSettings__StalenessMinimumPodCount: '5'
+          endpointCacheSettings__StalenessMinimumPodRatio: '0.005'
+          routingConfigurationSettings__MaxAllowedStaleStateTimeInSeconds: '45'
+          routingConfigurationSettings__RandomStalenessDelayForLivenessInSeconds: '15'
+          routingConfigurationSettings__RoutingConfigurationsFullSyncIntervalInSeconds: '30'
+          routingConfigurationSettings__RoutingConfigurationsFullSyncStartDelayInSeconds: '300'
+          submarinerPodTracker__MinimumPodAgeInSeconds: '300'
+          submarinerPodTracker__SyncIntervalInSeconds: '60'
+        kind: ConfigMap
+        metadata:
+          name: falcon-discovery-env-webas
+          namespace: falcon-core
+    - manifest:
+        apiVersion: v1
+        data:
+          HOSTING__PORT: '5004'
+          HOSTING__SSLPORT: '5005'
+          HTTPS_CERTIFICATE_FILE_PATH: /falcon-managed-secrets/ssl-cert.pem
+          SCD_CONTAINER_ID: >-
+            falconsvc.azurecr.io/falcon-core/kubernetesservicediscovery:0.1.71464748
+          Service__Name: falcon-core.kubernetesservicediscovery-webas
+          Service__Namespace: falcon-core
+          Service__Version: '71464748'
+        kind: ConfigMap
+        metadata:
+          labels:
+            app.kubernetes.io/component: service
+            app.kubernetes.io/instance: falcon-core.kubernetesservicediscovery-webas
+            app.kubernetes.io/version: '71464748'
+          name: kubernetesservicediscovery-env-configmap-webas
+          namespace: falcon-core
+    - manifest:
+        apiVersion: v1
+        kind: Service
+        metadata:
+          labels:
+            app.kubernetes.io/component: service
+            app.kubernetes.io/instance: falcon-core.kubernetesservicediscovery-webas
+            app.kubernetes.io/version: '71464748'
+            router.falcon.io/class: falcon
+          name: kubernetesservicediscovery-webas
+          namespace: falcon-core
+        spec:
+          ports:
+            - name: http
+              port: 8080
+              protocol: TCP
+              targetPort: http
+            - name: https
+              port: 8443
+              protocol: TCP
+              targetPort: https
+          selector:
+            app.kubernetes.io/component: service
+            app.kubernetes.io/instance: falcon-core.kubernetesservicediscovery-webas
+          type: ClusterIP
+    - manifest:
+        apiVersion: v1
+        kind: Service
+        metadata:
+          annotations:
+            service.beta.kubernetes.io/slb-for-external-name: kubernetesservicediscovery-internal-webas
+          labels:
+            app.kubernetes.io/component: service
+            app.kubernetes.io/instance: falcon-core.kubernetesservicediscovery-webas
+          name: kubernetesservicediscovery-clusterslb-webas
+          namespace: falcon-core
+        spec:
+          type: ExternalName
+    - manifest:
+        apiVersion: v1
+        kind: Service
+        metadata:
+          annotations:
+            service.beta.kubernetes.io/azure-load-balancer-internal: 'true'
+          labels:
+            app.kubernetes.io/component: service
+            app.kubernetes.io/instance: falcon-core.kubernetesservicediscovery-webas
+          name: kubernetesservicediscovery-internal-webas
+          namespace: falcon-core
+        spec:
+          ports:
+            - name: http
+              port: 8080
+              protocol: TCP
+              targetPort: http
+            - name: https
+              port: 8443
+              protocol: TCP
+              targetPort: https
+          selector:
+            app.kubernetes.io/instance: falcon-core.kubernetesservicediscovery-webas
+          type: LoadBalancer
+    - manifest:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          annotations:
+            apis.clusterfleet.io/spc-with-wi: 'true'
+            microsoft-falcon.net/preserve-fields: '[".spec.replicas"]'
+          labels:
+            app.kubernetes.io/component: service
+            app.kubernetes.io/instance: falcon-core.kubernetesservicediscovery-webas
+            app.kubernetes.io/version: '71464748'
+          name: kubernetesservicediscovery-webas
+          namespace: falcon-core
+        spec:
+          minReadySeconds: 120
+          progressDeadlineSeconds: 10800
+          replicas: 3
+          revisionHistoryLimit: 3
+          selector:
+            matchLabels:
+              app.kubernetes.io/component: service
+              app.kubernetes.io/instance: falcon-core.kubernetesservicediscovery-webas
+          strategy:
+            rollingUpdate:
+              maxSurge: 0%
+              maxUnavailable: 20%
+            type: RollingUpdate
+          template:
+            metadata:
+              annotations:
+                prometheus.io/path: /metrics
+                prometheus.io/port: '5004'
+                prometheus.io/scrape: 'true'
+              labels:
+                app.kubernetes.io/component: service
+                app.kubernetes.io/instance: falcon-core.kubernetesservicediscovery-webas
+                app.kubernetes.io/version: '71464748'
+                microsoft-falcon.net/mount-tls-cert: 'true'
+            spec:
+              affinity:
+                nodeAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - preference:
+                        matchExpressions:
+                          - key: microsoft-falcon.net/use-case
+                            operator: In
+                            values:
+                              - coreservice
+                      weight: 100
+                podAntiAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchExpressions:
+                            - key: app.kubernetes.io/instance
+                              operator: In
+                              values:
+                                - falcon-core.kubernetesservicediscovery-webas
+                            - key: app.kubernetes.io/component
+                              operator: In
+                              values:
+                                - service
+                        topologyKey: kubernetes.io/hostname
+                      weight: 1
+              containers:
+                - args:
+                    - /app/Microsoft.Falcon.KubernetesServiceDiscovery.dll
+                    - '--environment'
+                    - $(environment)
+                    - '--servicename'
+                    - falcon-core.kubernetesservicediscovery-webas
+                  command:
+                    - dotnet
+                  env:
+                    - name: ALLSERVICEDATALOGGING_INTERVALSECONDS
+                      value: '300'
+                    - name: SERVICE__NAMESPACE
+                      value: falcon-core
+                    - name: SERVICE__NAME
+                      value: kubernetesservicediscovery-webas
+                    - name: MONITORING_CONTAINER_ID
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: metadata.name
+                    - name: MONITORING_MA_IP_HOST
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: status.hostIP
+                    - name: SERVICELAUNCHER__PORT
+                      value: '49151'
+                    - name: HOST__IP
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: status.hostIP
+                    - name: HOSTNAME
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: spec.nodeName
+                    - name: POD__IPORFQDN
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: status.podIP
+                    - name: POD__ID
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: metadata.name
+                    - name: POD__NAMESPACE
+                      value: falcon-core
+                    - name: Fabric_NodeIPOrFQDN
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: status.podIP
+                    - name: ServiceLauncher__SecretPrefix
+                      value: falcon-core-kubernetesservicediscovery-webas
+                    - name: Secrets__SecretPrefix
+                      value: falcon-core-kubernetesservicediscovery-webas
+                    - name: Service__Version
+                      value: '71464748'
+                    - name: SCD_CONTAINER_ID
+                      value: >-
+                        falconsvc.azurecr.io/falcon-core/kubernetesservicediscovery:0.1.71464748
+                    - name: HOSTING__PORT
+                      value: '5004'
+                    - name: HOSTING__SSLPORT
+                      value: '5005'
+                    - name: HTTPS_CERTIFICATE_FILE_PATH
+                      value: /falcon-managed-secrets/ssl-cert.pem
+                    - name: CERTIFICATE__DISABLESSLINSTALL
+                      value: 'true'
+                    - name: DATADIR
+                      value: /data
+                    - name: LOGDIR
+                      value: /logs
+                    - name: DATAFOLDER_DIR
+                      value: /var/datafolder
+                    - name: DATAFOLDERROOT_DIR
+                      value: /var/datafolderroot
+                    - name: DATAFETCHER__PORT
+                      value: '8086'
+                    - name: CONFIG_DIR
+                      value: /var/config
+                    - name: LOGS_DIR
+                      value: /var/logs
+                    - name: SCRATCH_DIR
+                      value: /var/scratch
+                    - name: CONTAINER_POD_NAME_KEY
+                      value: kubernetesservicediscovery-webas_$(POD__ID)
+                    - name: CONTAINER_NAME_SEPARATOR
+                      value: ()
+                    - name: COMPlus_DbgEnableMiniDump
+                      value: '1'
+                    - name: COMPlus_DbgMiniDumpType
+                      value: '3'
+                    - name: COMPlus_DbgMiniDumpName
+                      value: >-
+                        /azure-watson/cores/$(CONTAINER_POD_NAME_KEY)$(CONTAINER_NAME_SEPARATOR)falcon-core.kubernetesservicediscovery-webas-%d
+                    - name: NODE_INFO_DIR
+                      value: /node
+                  envFrom:
+                    - configMapRef:
+                        name: kubernetesservicediscovery-env-configmap-webas
+                    - configMapRef:
+                        name: clusterfleet-config
+                    - configMapRef:
+                        name: falcon-discovery-env-webas
+                    - configMapRef:
+                        name: cluster-information
+                    - configMapRef:
+                        name: do-not-use-falcon-only
+                  image: >-
+                    falconsvc.azurecr.io/falcon-core/kubernetesservicediscovery:0.1.71464748
+                  imagePullPolicy: IfNotPresent
+                  livenessProbe:
+                    failureThreshold: 3
+                    httpGet:
+                      path: /watchdogalive
+                      port: https
+                      scheme: HTTPS
+                    initialDelaySeconds: 30
+                    periodSeconds: 10
+                    successThreshold: 1
+                    timeoutSeconds: 5
+                  name: kubernetesservicediscovery-webas
+                  ports:
+                    - containerPort: 5004
+                      name: http
+                      protocol: TCP
+                    - containerPort: 5005
+                      name: https
+                      protocol: TCP
+                  readinessProbe:
+                    failureThreshold: 3
+                    httpGet:
+                      path: /keepalive
+                      port: https
+                      scheme: HTTPS
+                    initialDelaySeconds: 120
+                    periodSeconds: 10
+                    successThreshold: 1
+                    timeoutSeconds: 5
+                  resources:
+                    limits:
+                      cpu: 2000m
+                      memory: 2548Mi
+                    requests:
+                      cpu: 1000m
+                      memory: 2548Mi
+                  startupProbe:
+                    failureThreshold: 3
+                    httpGet:
+                      path: /keepalive
+                      port: https
+                      scheme: HTTPS
+                    initialDelaySeconds: 30
+                    periodSeconds: 10
+                    successThreshold: 1
+                    timeoutSeconds: 5
+                  volumeMounts:
+                    - mountPath: /temp
+                      name: cache-volume
+                    - mountPath: /falcon-managed-secrets
+                      name: falcon-clusterfleet-ssl-vol
+                      readOnly: true
+                    - mountPath: /features
+                      name: preview-features-config
+                    - mountPath: /config/
+                      name: servicediscovery-config-volume
+                      readOnly: true
+                    - mountPath: /var/datafolder
+                      name: datafolder-volume
+                      readOnly: true
+                      subPathExpr: $(POD__NAMESPACE).$(POD__ID)
+                    - mountPath: /var/datafolderroot
+                      name: datafolderroot-volume
+                      readOnly: true
+                    - mountPath: /var/config
+                      name: config-volume
+                      readOnly: false
+                      subPathExpr: $(POD__NAMESPACE).$(POD__ID)
+                    - mountPath: /var/logs
+                      name: logs-volume
+                      readOnly: false
+                      subPathExpr: $(POD__NAMESPACE).$(POD__ID)
+                    - mountPath: /var/scratch
+                      name: scratch-volume
+                      readOnly: false
+                      subPathExpr: $(POD__NAMESPACE).$(POD__ID)
+                    - mountPath: /azure-watson/cores
+                      name: azure-watson-incoming-queue-volume
+                      readOnly: false
+                    - mountPath: /OSR
+                      name: azure-watson-osr-volume
+                      readOnly: false
+                    - mountPath: /node
+                      name: node-info-volume
+                      readOnly: true
+                  workingDir: /app
+              nodeSelector:
+                kubernetes.azure.com/mode: user
+                kubernetes.io/os: linux
+                microsoft-falcon.net/ap-connectivity: ipv4regional
+                microsoft-falcon.net/cloud: azure
+                microsoft-falcon.net/cross-region-connectivity: regional
+              priorityClassName: core
+              serviceAccountName: falconfleet-falcon-core-sa
+              terminationGracePeriodSeconds: 610
+              volumes:
+                - hostPath:
+                    path: /
+                  name: cache-volume
+                - csi:
+                    driver: secrets-store.csi.k8s.io
+                    readOnly: true
+                    volumeAttributes:
+                      secretProviderClass: falcon-falcon-core-ssl-cert
+                  name: falcon-clusterfleet-ssl-vol
+                - configMap:
+                    name: preview-features
+                  name: preview-features-config
+                - configMap:
+                    name: falcon-discovery-config-webas
+                  name: servicediscovery-config-volume
+                - hostPath:
+                    path: /mnt/k/pods/datafolders
+                    type: Directory
+                  name: datafolder-volume
+                - hostPath:
+                    path: /mnt/k/datafolderroot
+                    type: Directory
+                  name: datafolderroot-volume
+                - hostPath:
+                    path: /mnt/k/pods/config
+                    type: Directory
+                  name: config-volume
+                - hostPath:
+                    path: /mnt/k/pods/logs
+                    type: Directory
+                  name: logs-volume
+                - hostPath:
+                    path: /mnt/k/pods/scratch
+                    type: Directory
+                  name: scratch-volume
+                - hostPath:
+                    path: /azure-watson/cores
+                    type: DirectoryOrCreate
+                  name: azure-watson-incoming-queue-volume
+                - hostPath:
+                    path: /OSR
+                    type: DirectoryOrCreate
+                  name: azure-watson-osr-volume
+                - hostPath:
+                    path: /node
+                    type: DirectoryOrCreate
+                  name: node-info-volume
+    - manifest:
+        apiVersion: policy/v1
+        kind: PodDisruptionBudget
+        metadata:
+          labels:
+            app.kubernetes.io/component: service
+            app.kubernetes.io/instance: falcon-core.kubernetesservicediscovery-webas
+            app.kubernetes.io/version: '71464748'
+          name: kubernetesservicediscovery-webas
+          namespace: falcon-core
+        spec:
+          maxUnavailable: 20%
+          selector:
+            matchLabels:
+              app.kubernetes.io/component: service
+              app.kubernetes.io/instance: falcon-core.kubernetesservicediscovery-webas
+    - manifest:
+        apiVersion: autoscaling/v2
+        kind: HorizontalPodAutoscaler
+        metadata:
+          labels:
+            app.kubernetes.io/component: service
+          name: kubernetesservicediscovery-hpa-webas
+          namespace: falcon-core
+        spec:
+          behavior:
+            scaleDown:
+              policies:
+                - periodSeconds: 300
+                  type: Percent
+                  value: 10
+              selectPolicy: Max
+              stabilizationWindowSeconds: 300
+            scaleUp:
+              policies:
+                - periodSeconds: 15
+                  type: Percent
+                  value: 100
+              selectPolicy: Max
+              stabilizationWindowSeconds: 0
+          maxReplicas: 5
+          metrics:
+            - resource:
+                name: cpu
+                target:
+                  averageUtilization: 40
+                  type: Utilization
+              type: Resource
+            - resource:
+                name: memory
+                target:
+                  averageUtilization: 40
+                  type: Utilization
+              type: Resource
+          minReplicas: 3
+          scaleTargetRef:
+            apiVersion: apps/v1
+            kind: Deployment
+            name: kubernetesservicediscovery-webas
