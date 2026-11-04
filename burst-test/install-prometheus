@@ -1,0 +1,34 @@
+Install through helm:
+    helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+    helm repo update
+    helm install monitor prometheus-community/kube-prometheus-stack --namespace monitoring --create-namespace
+
+Change Resultion:
+    # Force high-resolution polling
+    kubectl patch prometheus -n monitoring monitor-kube-prometheus-st-prometheus \
+      --type=merge -p '{"spec":{"scrapeInterval":"5s"}}'
+
+Change admin password:
+    helm upgrade monitor prometheus-community/kube-prometheus-stack \
+    -n monitoring \
+    --set grafana.adminPassword=admin 
+
+Port forward:
+    kubectl port-forward svc/monitor-grafana -n monitoring 3000:80
+
+Access Portal:
+    url: http://localhost:3000
+    username: admin
+    password: admin
+
+Create a namespace:
+    kubectl create ns poc
+
+Deploy micro-burst-test:
+    kubectl apply -f burst-test/micro-burst-test.yaml
+
+Delete micro-burst-test:
+    kubectl -n poc delete deploy micro-burst-test
+
+Queries:
+    sum(rate(container_cpu_usage_seconds_total{namespace="poc", pod=~"micro-burst-test"}[1m]))

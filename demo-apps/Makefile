@@ -7,6 +7,8 @@ CODE_DIR="${rootMKfileDir}/.."
 TAG := $(shell git -C ${CODE_DIR} describe --tags --always)
 VERSION :=
 DEPLOYMENT_IMAGE_VERSION ?= v107
+CLUSTER_CONTEXT ?= dev-control-cluster
+SKIP_KIND_LOAD_IMAGE ?= true
 DEPLOYMENT_TIMESTAMP := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 DEPLOYMENT_APP_VERSION := $(shell date -u +"%Y%m%d%H%M%S")
 # Adds a '-dirty' suffix to version string if there are uncommitted changes
@@ -40,12 +42,22 @@ GOFLAGS=-ldflags "$(GOLDFLAGS)"
 controllerName:=demo-app
 controllerBuildDir:=$(cmdDir)/demo-app
 controllerBuildFlags:=$(GOFLAGS)
+wsClientDir:=$(cmdDir)/ws-client
+WS_CLIENT_URL ?= wss://127.0.0.1:10001/falcon-core.demo-app-rwpr/ws
+WS_CLIENT_MESSAGE ?= ping
+WS_CLIENT_COUNT ?= 10
+WS_CLIENT_INTERVAL ?= 1s
+WS_CLIENT_PROTOCOL ?= both
 
+.PHONY: ws-client
 
 build-demo-app:
 	@echo "$(YELLOW)** Build: $(controllerName) $(DEFAULTCOLOR)"
 	@go build -o $(outputDir)/$(controllerName) $(controllerBuildFlags) $(controllerBuildDir)/.
 	@echo "$(GREEN)** Done:  $(outputDir)/$(controllerName) $(DEFAULTCOLOR)"
+
+ws-client:
+	@go run $(wsClientDir)/. -url $(WS_CLIENT_URL) -message "$(WS_CLIENT_MESSAGE)" -count $(WS_CLIENT_COUNT) -interval $(WS_CLIENT_INTERVAL) -protocol $(WS_CLIENT_PROTOCOL)
 
 docker-demo-app:
 	@echo ${CODE_DIR}
@@ -61,7 +73,7 @@ load-demo-app-image:
 	@echo -n "Kind cluster name (Enter 'cc' for current cluster): "; \
 	read KIND_CLUSTER_NAME; \
 	if [ "$$KIND_CLUSTER_NAME" = "cc" ]; then \
-		cluster_list=$$(kubectl config current-context | cut -d'-' -f2-); \
+		cluster_list=$$(kubectl $$kube_context config current-context | cut -d'-' -f2-); \
 	elif [ -z "$$KIND_CLUSTER_NAME" ]; then \
 		cluster_list=$$(kind get clusters); \
 	else \
@@ -78,12 +90,16 @@ deploy:
 #	make -f ~/dev-shortcuts/demo-apps/Makefile deploy YAML=demo-app-ds
 #   make -f ~/dev-shortcuts/demo-apps/Makefile deploy YAML=demo-app-rwpr
 	@make -f ${rootMKfilePath} docker-demo-app DEPLOYMENT_IMAGE_VERSION=${DEPLOYMENT_IMAGE_VERSION} YAML=${YAML}
-	@make -f ${rootMKfilePath} load-demo-app-image DEPLOYMENT_IMAGE_VERSION=${DEPLOYMENT_IMAGE_VERSION} YAML=${YAML}
+	@if [ "$(SKIP_KIND_LOAD_IMAGE)" != "true" ]; then \
+		make -f ${rootMKfilePath} load-demo-app-image DEPLOYMENT_IMAGE_VERSION=${DEPLOYMENT_IMAGE_VERSION} YAML=${YAML}; \
+	else \
+		echo "$(YELLOW)** Skipping load-demo-app-image (SKIP_KIND_LOAD_IMAGE=true) $(DEFAULTCOLOR)"; \
+	fi
 	sed \
 	  -e "s/DEPLOYMENT_APP_VERSION/$(DEPLOYMENT_APP_VERSION)/g" \
 	  -e "s/DEPLOYMENT_IMAGE_VERSION/$(DEPLOYMENT_IMAGE_VERSION)/g" \
 	  -e "s/DEPLOYMENT_TIMESTAMP/$(DEPLOYMENT_TIMESTAMP)/g" \
-	  ${rootMKfileDir}/yaml/${YAML}.yaml | kubectl apply -f -
+	  ${rootMKfileDir}/yaml/${YAML}.yaml | kubectl $$kube_context --context kind-$(CLUSTER_CONTEXT) apply -f -
 deploy-yaml:
 #	make -f ~/dev-shortcuts/demo-apps/Makefile deploy-yaml YAML=demo-app-ds
 #   make -f ~/dev-shortcuts/demo-apps/Makefile deploy-yaml YAML=demo-app-rwpr
@@ -91,4 +107,4 @@ deploy-yaml:
 	  -e "s/DEPLOYMENT_APP_VERSION/$(DEPLOYMENT_APP_VERSION)/g" \
 	  -e "s/DEPLOYMENT_IMAGE_VERSION/$(DEPLOYMENT_IMAGE_VERSION)/g" \
 	  -e "s/DEPLOYMENT_TIMESTAMP/$(DEPLOYMENT_TIMESTAMP)/g" \
-	  ${rootMKfileDir}/yaml/${YAML}.yaml | kubectl apply -f -
+	  ${rootMKfileDir}/yaml/${YAML}.yaml | kubectl $$kube_context --context kind-$(CLUSTER_CONTEXT) apply -f -

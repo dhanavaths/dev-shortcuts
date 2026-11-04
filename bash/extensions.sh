@@ -10,12 +10,38 @@ function g()
 
 function kube_prod()
 {
-	${SCRIPTDIR}/eval.sh _prod_kubectl $@
+	export kube_context=""
+	if [ "$1" = "-ctx" ]; then
+		export kube_context="--context $2"
+		${SCRIPTDIR}/eval.sh _prod_kubectl ${@:3}
+	else
+		${SCRIPTDIR}/eval.sh _prod_kubectl $@
+	fi
 }
 
 function kube_local()
 {
-	${SCRIPTDIR}/eval.sh _local_kubectl $@
+	export kube_context=""
+	if [ "$1" = "-ctx" ]; then
+		local _ctx="$2"
+		case "$_ctx" in
+			cc)
+				_ctx="kind-dev-control-cluster"
+				;;
+			sc1)
+				_ctx="kind-dev-sc000001-1"
+				;;
+			sc2)
+				_ctx="kind-dev-sc000001-2"
+				;;
+		esac
+
+		export kube_context="--context $_ctx"
+		echo "Using kube context: $kube_context"
+		${SCRIPTDIR}/eval.sh _local_kubectl ${@:3}
+	else
+		${SCRIPTDIR}/eval.sh _local_kubectl $@
+	fi
 }
 
 function bashrc()
@@ -49,6 +75,7 @@ export LOCAL_KUBECTL_SHORTCUT="kube_local"
 
 alias kprod="${PROD_KUBECTL_SHORTCUT}"
 alias klocal="${LOCAL_KUBECTL_SHORTCUT}"
+alias k="${LOCAL_KUBECTL_SHORTCUT}"
 
 # aliases
 alias kuc="${PROD_KUBECTL_SHORTCUT} kuc "

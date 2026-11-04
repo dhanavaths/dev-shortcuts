@@ -1,3 +1,6 @@
+SCRIPTDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+source "${SCRIPTDIR}/../bash/config.sh"
+
 OPT_NAMESPACE=""
 OPT_NAMESPACE_NAME=""
 OPT_ALL_NAMESPACES=""

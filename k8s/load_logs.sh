@@ -16,21 +16,21 @@ function _fetch_pod_logs() {
   if [ "$1" = "" ]; then
       exit 0
   fi
-  echo "kubectl $kube_config $OPT_NAMESPACE logs $1 $var_arguments" >&2
+  echo "kubectl $kube_context $kube_config $OPT_NAMESPACE logs $1 $var_arguments" >&2
 
   if [ -n "$OPT_SEARCH_PATTERN" ]; then
     if [ "$OPT_LANGUAGE_RUNTIME" = "go" ]; then
-      kubectl $kube_config $OPT_NAMESPACE logs $1 $var_arguments | tail -n +2 | ${JQ_CMD} -r "$_go_runtime_log_format" | grep -i -E -- "$OPT_SEARCH_PATTERN" 2>/dev/null
+      kubectl $kube_context $kube_config $OPT_NAMESPACE logs $1 $var_arguments | tail -n +2 | ${JQ_CMD} -r "$_go_runtime_log_format" | grep -i -E -- "$OPT_SEARCH_PATTERN" 2>/dev/null
     else
-      kubectl $kube_config $OPT_NAMESPACE logs $1 $var_arguments | grep -i -E -- "$OPT_SEARCH_PATTERN" | sed 's/\(Message\)/\x1b[1;36m\1\x1b[0m/g' 2>/dev/null
+      kubectl $kube_context $kube_config $OPT_NAMESPACE logs $1 $var_arguments | grep -i -E -- "$OPT_SEARCH_PATTERN" | sed 's/\(Message\)/\x1b[1;36m\1\x1b[0m/g' 2>/dev/null
     fi
   else
     if [ "$OPT_LANGUAGE_RUNTIME" = "go" ]; then
-      kubectl $kube_config $OPT_NAMESPACE logs $1 $var_arguments | ${JQ_CMD} -r "$_go_runtime_log_format" 2>/dev/null
+      kubectl $kube_context $kube_config $OPT_NAMESPACE logs $1 $var_arguments | ${JQ_CMD} -r "$_go_runtime_log_format" 2>/dev/null
     elif [ "$OPT_LANGUAGE_RUNTIME" = "dotnet" ]; then
-      kubectl $kube_config $OPT_NAMESPACE logs $1 $var_arguments | sed 's/\(Message\)/\x1b[1;34m\1\x1b[0m/g' 
+      kubectl $kube_context $kube_config $OPT_NAMESPACE logs $1 $var_arguments | sed 's/\(Message\)/\x1b[1;34m\1\x1b[0m/g' 
     else
-      kubectl $kube_config $OPT_NAMESPACE logs $1 $var_arguments 2>/dev/null
+      kubectl $kube_context $kube_config $OPT_NAMESPACE logs $1 $var_arguments 2>/dev/null
     fi
   fi
   echo
@@ -47,15 +47,15 @@ function _main()
 {
   echo "OPT_RESOURCE_NAME_PATTERN: $OPT_RESOURCE_NAME_PATTERN"
   if  [[ -n "${OPT_RESOURCE_NAME_PATTERN}" ]]; then
-    echo "kubectl $kube_config $OPT_NAMESPACE get pod  -owide | awk 'NR==1; /'\"${OPT_RESOURCE_NAME_PATTERN}\"'/'" >&2
-    local _output=$(kubectl $kube_config $OPT_NAMESPACE get pod -owide | awk 'NR==1; /'"${OPT_RESOURCE_NAME_PATTERN}"'/')
+    echo "kubectl $kube_context $kube_config $OPT_NAMESPACE get pod  -owide | awk 'NR==1; /'\"${OPT_RESOURCE_NAME_PATTERN}\"'/'" >&2
+    local _output=$(kubectl $kube_context $kube_config $OPT_NAMESPACE get pod -owide | awk 'NR==1; /'"${OPT_RESOURCE_NAME_PATTERN}"'/')
     echo "$_output"
     resource_list=$(echo "$_output" | awk 'NR > 1 {print $1}' | nl -v 0)
   elif [ -n "${OPT_RESOURCE_NAME}" ]; then
       resource_list=$(echo "${OPT_RESOURCE_NAME}" | nl -v 0)
   else
-    echo "kubectl $kube_config $OPT_NAMESPACE get pod  -owide" >&2
-    local _output=$(kubectl $kube_config $OPT_NAMESPACE get pod -owide )
+    echo "kubectl $kube_context $kube_config $OPT_NAMESPACE get pod  -owide" >&2
+    local _output=$(kubectl $kube_context $kube_config $OPT_NAMESPACE get pod -owide )
     echo "$_output"
     resource_list=$(echo "$_output" | awk 'NR > 1 {print $1}' | nl -v 0)
 
@@ -65,7 +65,7 @@ function _main()
 
   while true; do
     if [ -z "$kube_config" ]; then
-      kubectl $OPT_NAMESPACE get lease 2>/dev/null
+      kubectl $kube_context $OPT_NAMESPACE get lease 2>/dev/null
     fi
     _handle_user_input
   done

@@ -15,7 +15,8 @@ def ensure_directories():
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
-kctl_prefix = 'kubectl --kubeconfig /mnt/q/kube-config'
+kube_context = os.getenv("kube_context", "").strip()
+kctl_prefix = " ".join(f"kubectl {kube_context} --kubeconfig /mnt/q/kube-config".split())
 def get_app_list():
     _cmd = f'{kctl_prefix} get app -A -o=custom-columns=NAMESPACE:.metadata.namespace,NAME:.metadata.name' 
     result = subprocess.run(_cmd.split(), capture_output=True, text=True)
