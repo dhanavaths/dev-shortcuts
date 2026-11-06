@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -o pipefail
+
 namespace="$1"
 node="${OPT_NODE_NAME_SELECTOR#--field-selector spec.nodeName=}"
 if [[ $# -ne 1 || -z "$namespace" || "$namespace" == "-" || -z "$OPT_POD_PATTERN" || -z "$node" || -z "$OPT_SCRIPT_FILE" ]]; then
@@ -69,8 +71,10 @@ powershell_script='
 		Remove-Item -LiteralPath $scriptPath -Force -ErrorAction Stop
 	}
 '
+encoded_command=$(printf '%s' "\$expectedBytes = $script_bytes; $powershell_script" |
+	iconv -f UTF-8 -t UTF-16LE | base64 | tr -d '\r\n') || exit $?
 kubectl "${kubectl_args[@]}" exec -i "$pod" -- powershell -NoProfile -NonInteractive \
-	-Command "\$expectedBytes = $script_bytes; $powershell_script" < "$OPT_SCRIPT_FILE"
+	-InputFormat Text -OutputFormat Text -EncodedCommand "$encoded_command" < "$OPT_SCRIPT_FILE"
 status=$?
 if [[ "$status" -ne 0 ]]; then
 	echo "[run_exec] Remote execution failed (exit $status)." >&2

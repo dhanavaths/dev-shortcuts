@@ -46,6 +46,8 @@ Run a local PowerShell script in a matching pod on a node:
 - Streams the file unchanged into a unique temporary .ps1 file in the container,
   executes it non-interactively with PowerShell, and removes the temporary file.
   No tar installation is required in the Windows container.
+- Uses PowerShell -EncodedCommand for the wrapper to avoid multiline command quoting
+  issues between Bash, kubectl, and Windows. Requires local iconv and base64 commands.
 - Rejects empty scripts and verifies the received file size before execution.
 - Prints remote PowerShell startup, copied-byte count, execution start, and successful
   completion. Script console output and errors are streamed to the terminal.
