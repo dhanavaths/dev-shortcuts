@@ -29,7 +29,7 @@ Copy a local PowerShell script and open a shell in a matching pod on a node:
 - Implemented in kubectl/run_exec.sh, invoked by kubectl/commands.sh, and uses the
   shared parser's exported options directly.
 - Usage: kprod [-ctx <context>] <ns> run_exec --pod <pod_pattern> --sfile <script_file> -nn <node_name>
-- Example: kprod -ctx my-context fc run_exec -nn worker-01 --pod nodebootstrapper --sfile "/home/user/scripts/check node.ps1"
+- Example: kprod -ctx my-context fc run_exec -nn worker-01 --pod nodebootstrapper --sfile /home/user/scripts/check_node.ps1
 - Flags may appear in any order after run_exec.
 - Shared options: --pod selects the pod pattern and --sfile selects the local script
   file. These are parsed without checking the command verb.
@@ -37,7 +37,8 @@ Copy a local PowerShell script and open a shell in a matching pod on a node:
 - Log search uses -g, -r, or --search-pattern.
 - pod_pattern matches a literal name fragment (e.g., nodebootstrapper matches
   nodebootstrapper-abc) or a shell-style wildcard pattern (*, ?, [abc]).
-  Quote wildcard patterns to prevent local shell expansion.
+- Legacy wrappers split forwarded arguments and expand wildcards. Use script paths
+  without spaces and prefer literal pod-name fragments to avoid local expansion.
 - Use klocal (or k) for the local kubeconfig, kprod for the production kubeconfig,
   and -ctx <context> before the namespace to select a context.
 - Finds exactly one matching Running pod in the given namespace on the given node.

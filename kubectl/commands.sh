@@ -405,7 +405,7 @@ function kpverb()
 				echo "Usage: k <ns> run_exec --sfile <script_file> -nn <node_name> --pod <pod_pattern>" >&2
 				return 1
 			fi
-			bash "${SCRIPTDIR}/../kubectl/run_exec.sh" "$OPT_NAMESPACE_NAME"
+			bash ${SCRIPTDIR}/../kubectl/run_exec.sh $OPT_NAMESPACE_NAME
 			;;
 		exec|x)
 			if [[ -z "$3" ]]; then
@@ -685,11 +685,11 @@ function _kpnamespace()
 			kpverb $_app_ns get app mw $app_name
 			;;
 		*)
-			kpverb "$@"
+			kpverb $@
 			;;
 	esac
 }
 
 set_common_options "$@" || exit $?
 set -- "${POST_PARSE_ARGS[@]}"
-_kpnamespace "$@"
+_kpnamespace $@
