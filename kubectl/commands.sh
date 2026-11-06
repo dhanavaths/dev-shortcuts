@@ -400,6 +400,13 @@ function kpverb()
 			# echo "${INPUT_COMMAND_ARGS_LIST[@]:0:1}" get logs "${INPUT_COMMAND_ARGS_LIST[@]:2}"
 			${SCRIPTDIR}/../k8s/load_logs.sh ${INPUT_COMMAND_ARGS_LIST[@]:0:1} logs - ${INPUT_COMMAND_ARGS_LIST[@]:2}
 			;;
+		run_exec)
+			if [[ $# -ne 2 ]]; then
+				echo "Usage: k <ns> run_exec --sfile <script_file> -nn <node_name> --pod <pod_pattern>" >&2
+				return 1
+			fi
+			bash "${SCRIPTDIR}/../kubectl/run_exec.sh" "$OPT_NAMESPACE_NAME"
+			;;
 		exec|x)
 			if [[ -z "$3" ]]; then
 				echo "exec    : k <ns> exec <pod-name> [ps|sh| --woth-args]"
@@ -631,6 +638,7 @@ function kpverb()
 			kpverb - describe
 			kpverb - apply
 			kpverb - exec
+			echo "run_exec: k <ns> run_exec --pod <pod_pattern> --sfile <script_file> -nn <node_name>"
 			kpverb - debug
 			kpverb - debug-copy
 			kpverb - restart
@@ -677,11 +685,11 @@ function _kpnamespace()
 			kpverb $_app_ns get app mw $app_name
 			;;
 		*)
-			kpverb $@
+			kpverb "$@"
 			;;
 	esac
 }
 
-set_common_options "$@"
+set_common_options "$@" || exit $?
 set -- "${POST_PARSE_ARGS[@]}"
-_kpnamespace $@
+_kpnamespace "$@"

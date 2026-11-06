@@ -8,6 +8,8 @@ OPT_NODE_NAME_SELECTOR=""
 OPT_RESOURCE_NAME=""
 OPT_RESOURCE_NAME_PATTERN=""
 OPT_SEARCH_PATTERN=""
+OPT_POD_PATTERN=""
+OPT_SCRIPT_FILE=""
 OPT_OUTPUT_FORMAT=""
 OPT_SORT_BY="--sort-by=.metadata.name"
 OPT_LESS_MODE=""
@@ -34,6 +36,14 @@ function set_common_options() {
   shift
   while [[ $# -gt 0 ]]; do
     case "$1" in
+      -s|--sort-by|-nn|--node-name|--sfile|--pod|-g|-r|--search-pattern|--search|-l)
+        if [[ $# -lt 2 || -z "$2" ]]; then
+          echo "Missing value for $1." >&2
+          return 1
+        fi
+        ;;
+    esac
+    case "$1" in
       --)
         OPT_HAS_DIRECT_COMMAND="true"
         shift
@@ -52,11 +62,19 @@ function set_common_options() {
         esac
         shift 2
         ;;
+      --sfile)
+        OPT_SCRIPT_FILE="$2"
+        shift 2
+        ;;
       -nn | --node-name)
         OPT_NODE_NAME_SELECTOR="--field-selector spec.nodeName=$2"
         shift 2
         ;;
-      -p | -g | -r | --search-pattern | --search)
+      --pod)
+        OPT_POD_PATTERN="$2"
+        shift 2
+        ;;
+      -g | -r | --search-pattern | --search)
         OPT_SEARCH_PATTERN="$2"
         shift 2
         ;;
@@ -140,6 +158,8 @@ function set_common_options() {
   export OPT_RESOURCE_NAME
   export OPT_RESOURCE_NAME_PATTERN
   export OPT_SEARCH_PATTERN
+  export OPT_POD_PATTERN
+  export OPT_SCRIPT_FILE
   export OPT_OUTPUT_FORMAT
   export OPT_SORT_BY
   export OPT_LESS_MODE
