@@ -24,21 +24,23 @@ function reset_kube_cofig()
 function execute_script()
 {
 	local script_path=$1
-	local namespace=$(get_namespace $2)
-    ${script_path} $namespace ${@:3}
+	local namespace=$(get_namespace "$2")
+    "${script_path}" "$namespace" "${@:3}"
 }
 
 function execute_script_with_prod_context()
 {
     set_prod_kube_cofig
-    execute_script $@
+    execute_script "$@"
+    local status=$?
     reset_kube_cofig
+    return "$status"
 }
 
 function execute_script_with_local_context()
 {
     reset_kube_cofig
-    execute_script $@
+    execute_script "$@"
 }
 
 
@@ -58,8 +60,8 @@ function handle_prod_kube_command()
 			execute_script_with_prod_context ${SCRIPTDIR}/../kubectl/download_kube.sh ${@:2}
 			;;
 		*)
-			show_help $@
-			execute_script_with_prod_context ${SCRIPTDIR}/../kubectl/commands.sh $@
+			show_help "$@"
+			execute_script_with_prod_context "${SCRIPTDIR}/../kubectl/commands.sh" "$@"
 			;;
 	esac
 }
@@ -114,8 +116,8 @@ function handle_local_k_command() {
 			done
 			;;
 		*)
-			show_help $@
-			execute_script_with_local_context ${SCRIPTDIR}/../kubectl/commands.sh $@
+			show_help "$@"
+			execute_script_with_local_context "${SCRIPTDIR}/../kubectl/commands.sh" "$@"
 			;;
 	esac
 }
@@ -127,12 +129,12 @@ function _main() {
 			${SCRIPTDIR}/../git/commands.sh ${@:2}
 			;;
 		_prod_kubectl)
-			handle_prod_kube_command ${@:2}
+			handle_prod_kube_command "${@:2}"
 			;;
 		_local_kubectl)
-			handle_local_k_command ${@:2}
+			handle_local_k_command "${@:2}"
 			;;
 	esac
 }
 
-_main $@
+_main "$@"

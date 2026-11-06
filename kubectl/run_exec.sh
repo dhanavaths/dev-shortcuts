@@ -10,6 +10,11 @@ if [[ ! -f "$OPT_SCRIPT_FILE" || ! -r "$OPT_SCRIPT_FILE" ]]; then
 	echo "PowerShell script is not a readable file: $OPT_SCRIPT_FILE" >&2
 	exit 1
 fi
+script_bytes=$(wc -c < "$OPT_SCRIPT_FILE") || exit $?
+if [[ "$script_bytes" -eq 0 ]]; then
+	echo "PowerShell script is empty: $OPT_SCRIPT_FILE" >&2
+	exit 1
+fi
 
 kubectl_args=(-n "$namespace")
 if [[ -n "$kube_context" ]]; then
@@ -33,9 +38,10 @@ if [[ ${#matches[@]} -ne 1 ]]; then
 fi
 pod="${matches[0]}"
 
-echo "Copying and running $OPT_SCRIPT_FILE in $namespace/$pod on $node" >&2
-kubectl "${kubectl_args[@]}" exec -i "$pod" -- powershell -NoProfile -NonInteractive -Command '
+echo "Copying and running $OPT_SCRIPT_FILE ($script_bytes bytes) in $namespace/$pod on $node" >&2
+powershell_script='
 	$ErrorActionPreference = "Stop"
+	Write-Host "[run_exec] PowerShell started; receiving $expectedBytes bytes."
 	$scriptPath = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString() + ".ps1")
 	try {
 		$file = [IO.File]::Create($scriptPath)
@@ -44,6 +50,11 @@ kubectl "${kubectl_args[@]}" exec -i "$pod" -- powershell -NoProfile -NonInterac
 		} finally {
 			$file.Dispose()
 		}
+		$actualBytes = (Get-Item -LiteralPath $scriptPath).Length
+		if ($actualBytes -ne $expectedBytes) {
+			throw "Script transfer failed: expected $expectedBytes bytes, received $actualBytes."
+		}
+		Write-Host "[run_exec] Copied $actualBytes bytes to $scriptPath. Starting script."
 		$global:LASTEXITCODE = 0
 		& $scriptPath
 		$succeeded = $?
@@ -53,7 +64,15 @@ kubectl "${kubectl_args[@]}" exec -i "$pod" -- powershell -NoProfile -NonInterac
 		if (-not $succeeded) {
 			exit 1
 		}
+		Write-Host "[run_exec] Script completed (exit 0). Verify the intended changes separately."
 	} finally {
 		Remove-Item -LiteralPath $scriptPath -Force -ErrorAction Stop
 	}
-' < "$OPT_SCRIPT_FILE"
+'
+kubectl "${kubectl_args[@]}" exec -i "$pod" -- powershell -NoProfile -NonInteractive \
+	-Command "\$expectedBytes = $script_bytes; $powershell_script" < "$OPT_SCRIPT_FILE"
+status=$?
+if [[ "$status" -ne 0 ]]; then
+	echo "[run_exec] Remote execution failed (exit $status)." >&2
+fi
+exit "$status"
