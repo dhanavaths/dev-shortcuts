@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -o pipefail
-
 namespace="$1"
 node="${OPT_NODE_NAME_SELECTOR#--field-selector spec.nodeName=}"
 if [[ $# -ne 1 || -z "$namespace" || "$namespace" == "-" || -z "$OPT_POD_PATTERN" || -z "$node" || -z "$OPT_SCRIPT_FILE" ]]; then
@@ -23,7 +21,12 @@ if [[ -n "$kube_context" ]]; then
 	kubectl_args+=(--context "${kube_context#--context }")
 fi
 if [[ -n "$kube_config" ]]; then
-	kubectl_args+=(--kubeconfig "${kube_config#--kubeconfig }")
+	config_path="${kube_config#--kubeconfig }"
+	config_path="${config_path//\\//}"
+	if [[ "$config_path" != /* && "$config_path" != [a-zA-Z]:/* ]]; then
+		config_path="$PWD/$config_path"
+	fi
+	kubectl_args+=(--kubeconfig "$config_path")
 fi
 pod_names=$(kubectl "${kubectl_args[@]}" get pods \
 	--field-selector "spec.nodeName=$node,status.phase=Running" \
@@ -40,43 +43,25 @@ if [[ ${#matches[@]} -ne 1 ]]; then
 fi
 pod="${matches[0]}"
 
-echo "Copying and running $OPT_SCRIPT_FILE ($script_bytes bytes) in $namespace/$pod on $node" >&2
-powershell_script='
-	$ErrorActionPreference = "Stop"
-	Write-Host "[run_exec] PowerShell started; receiving $expectedBytes bytes."
-	$scriptPath = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString() + ".ps1")
-	try {
-		$file = [IO.File]::Create($scriptPath)
-		try {
-			[Console]::OpenStandardInput().CopyTo($file)
-		} finally {
-			$file.Dispose()
-		}
-		$actualBytes = (Get-Item -LiteralPath $scriptPath).Length
-		if ($actualBytes -ne $expectedBytes) {
-			throw "Script transfer failed: expected $expectedBytes bytes, received $actualBytes."
-		}
-		Write-Host "[run_exec] Copied $actualBytes bytes to $scriptPath. Starting script."
-		$global:LASTEXITCODE = 0
-		& $scriptPath
-		$succeeded = $?
-		if ($LASTEXITCODE -ne 0) {
-			exit $LASTEXITCODE
-		}
-		if (-not $succeeded) {
-			exit 1
-		}
-		Write-Host "[run_exec] Script completed (exit 0). Verify the intended changes separately."
-	} finally {
-		Remove-Item -LiteralPath $scriptPath -Force -ErrorAction Stop
-	}
-'
-encoded_command=$(printf '%s' "\$expectedBytes = $script_bytes; $powershell_script" |
-	iconv -f UTF-8 -t UTF-16LE | base64 | tr -d '\r\n') || exit $?
-kubectl "${kubectl_args[@]}" exec -i "$pod" -- powershell -NoProfile -NonInteractive \
-	-InputFormat Text -OutputFormat Text -EncodedCommand "$encoded_command" < "$OPT_SCRIPT_FILE"
-status=$?
-if [[ "$status" -ne 0 ]]; then
-	echo "[run_exec] Remote execution failed (exit $status)." >&2
+source_path="$OPT_SCRIPT_FILE"
+if [[ "$source_path" == [a-zA-Z]:* ]]; then
+	source_path="${source_path//\\//}"
 fi
-exit "$status"
+source_name="${source_path##*/}"
+source_dir="${source_path%/*}"
+if [[ "$source_dir" == "$source_path" ]]; then
+	source_dir="."
+elif [[ -z "$source_dir" ]]; then
+	source_dir="/"
+fi
+remote_file="run_exec_${RANDOM}_${RANDOM}.ps1"
+
+echo "Copying $OPT_SCRIPT_FILE ($script_bytes bytes) to $namespace/$pod on $node" >&2
+# A relative source avoids kubectl cp interpreting a Windows drive as a pod name.
+(cd -- "$source_dir" && kubectl "${kubectl_args[@]}" cp "./$source_name" "$pod:./$remote_file") || exit $?
+
+echo "Copied to the container's working directory: $remote_file" >&2
+echo "Run this command inside the PowerShell session:" >&2
+echo "  & '.\\$remote_file'" >&2
+echo "The script has NOT been executed. Opening an interactive PowerShell session..." >&2
+kubectl "${kubectl_args[@]}" exec -it "$pod" -- powershell -NoProfile -NoLogo

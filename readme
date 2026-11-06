@@ -25,7 +25,7 @@ Local environment:
 - example: klocal <ns> <verb> [resource] [options]
 - klocal appropriately switches to use the default kubeconfig
 
-Run a local PowerShell script in a matching pod on a node:
+Copy a local PowerShell script and open a shell in a matching pod on a node:
 - Implemented in kubectl/run_exec.sh, invoked by kubectl/commands.sh, and uses the
   shared parser's exported options directly.
 - Usage: kprod [-ctx <context>] <ns> run_exec --pod <pod_pattern> --sfile <script_file> -nn <node_name>
@@ -42,19 +42,18 @@ Run a local PowerShell script in a matching pod on a node:
   and -ctx <context> before the namespace to select a context.
 - Finds exactly one matching Running pod in the given namespace on the given node.
   Namespace aliases such as fc (falcon-core) are supported.
-  Missing or ambiguous matches fail without running the script.
-- Streams the file unchanged into a unique temporary .ps1 file in the container,
-  executes it non-interactively with PowerShell, and removes the temporary file.
-  No tar installation is required in the Windows container.
-- Uses PowerShell -EncodedCommand for the wrapper to avoid multiline command quoting
-  issues between Bash, kubectl, and Windows. Requires local iconv and base64 commands.
-- Rejects empty scripts and verifies the received file size before execution.
-- Prints remote PowerShell startup, copied-byte count, execution start, and successful
-  completion. Script console output and errors are streamed to the terminal.
-- Returns kubectl/PowerShell failures to the caller. Only run trusted scripts.
-- Exit 0 means the script completed without an uncaught error, not that it made
-  changes. Verify its intended effects separately. Host-network/interface repairs
-  require a container with access to the host (typically a Windows HostProcess pod).
+  Missing or ambiguous matches fail without copying the script or opening a shell.
+- Rejects empty scripts, then uses kubectl cp to place the file under a unique
+  run_exec_*.ps1 name in the container's working directory.
+- Prints the command to run the copied script and opens an interactive PowerShell
+  session in the same container. The script is NOT executed automatically.
+- The copied file is left in the pod; remove it manually when finished.
+- Uses the existing Bash, wc, and kubectl commands locally; no iconv, base64, or local
+  PowerShell is required. kubectl cp requires tar inside the target container.
+- Copy failures stop before opening a shell. The interactive session's exit status
+  is returned through kprod/klocal. Only run trusted scripts and verify their effects.
+- Host-network/interface repairs require a container with access to the host
+  (typically a Windows HostProcess pod).
 - Reload bash/extensions.sh (or start a new shell) after updating the shortcuts.
 
 Options:
