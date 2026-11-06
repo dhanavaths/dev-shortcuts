@@ -23,7 +23,7 @@ pod_names=$(kubectl "${kubectl_args[@]}" get pods \
 	-o 'jsonpath={range .items[*]}{.metadata.name}{"\n"}{end}') || exit $?
 matches=()
 while IFS= read -r pod; do
-	if [[ -n "$pod" && "$pod" == $OPT_POD_PATTERN ]]; then
+	if [[ -n "$pod" && ( "$pod" == $OPT_POD_PATTERN || "$pod" == *"$OPT_POD_PATTERN"* ) ]]; then
 		matches+=("$pod")
 	fi
 done <<< "$pod_names"
