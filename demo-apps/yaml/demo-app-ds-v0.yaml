@@ -4,6 +4,7 @@ metadata:
   name: demo-app-ds-v0
   namespace: clusterfleet
 spec:
+  minReadySeconds: 0
   updateStrategy:
     rollingUpdate:
       maxUnavailable: 1
@@ -38,7 +39,7 @@ spec:
         livenessProbe:
           failureThreshold: 1
           httpGet:
-            path: /keepalive
+            path: /liveness
             port: 12011
             scheme: HTTP
           initialDelaySeconds: 5

@@ -25,6 +25,38 @@ Local environment:
 - example: klocal <ns> <verb> [resource] [options]
 - klocal appropriately switches to use the default kubeconfig
 
+Copy a local PowerShell script and open a shell in a matching pod on a node:
+- Implemented in kubectl/run_exec.sh, invoked by kubectl/commands.sh, and uses the
+  shared parser's exported options directly.
+- Usage: kprod [-ctx <context>] <ns> run_exec --pod <pod_pattern> --sfile <script_file> -nn <node_name>
+- Example: kprod -ctx my-context fc run_exec -nn worker-01 --pod nodebootstrapper --sfile /home/user/scripts/check_node.ps1
+- Flags may appear in any order after run_exec.
+- Shared options: --pod selects the pod pattern and --sfile selects the local script
+  file. These are parsed without checking the command verb.
+- Existing -s (sorting) and -f (e.g., apply -f or logs -f) are unchanged.
+- Log search uses -g, -r, or --search-pattern.
+- pod_pattern matches a literal name fragment (e.g., nodebootstrapper matches
+  nodebootstrapper-abc) or a shell-style wildcard pattern (*, ?, [abc]).
+- Legacy wrappers split forwarded arguments and expand wildcards. Use script paths
+  without spaces and prefer literal pod-name fragments to avoid local expansion.
+- Use klocal (or k) for the local kubeconfig, kprod for the production kubeconfig,
+  and -ctx <context> before the namespace to select a context.
+- Finds exactly one matching Running pod in the given namespace on the given node.
+  Namespace aliases such as fc (falcon-core) are supported.
+  Missing or ambiguous matches fail without copying the script or opening a shell.
+- Rejects empty scripts, then uses kubectl cp to place the file under a unique
+  run_exec_*.ps1 name in the container's working directory.
+- Prints the command to run the copied script and opens an interactive PowerShell
+  session in the same container. The script is NOT executed automatically.
+- The copied file is left in the pod; remove it manually when finished.
+- Uses the existing Bash, wc, and kubectl commands locally; no iconv, base64, or local
+  PowerShell is required. kubectl cp requires tar inside the target container.
+- Copy failures stop before opening a shell. The interactive session's exit status
+  is returned through kprod/klocal. Only run trusted scripts and verify their effects.
+- Host-network/interface repairs require a container with access to the host
+  (typically a Windows HostProcess pod).
+- Reload bash/extensions.sh (or start a new shell) after updating the shortcuts.
+
 Options:
 | -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | Option   | Long Option        | Description                                                                                                                                   |
@@ -35,7 +67,11 @@ Options:
 | -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | `-nn`    | `--node-name`      | Filter by node name. Uses Kubernetes field selector `spec.nodeName=<value>`.                                                                  |
 | -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| -p|-g|-r | `--search-pattern` | Pattern to search in logs.                                                                                                                    |
+|          | `--pod`           | Literal pod name fragment or wildcard pattern for run_exec (e.g., nodebootstrapper or 'nodebootstrapper-*').                                  |
+| -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+|          | `--sfile`         | Local PowerShell script file for run_exec.                                                                                                   |
+| -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| -g|-r    | `--search-pattern` | Pattern to search in logs.                                                                                                                    |
 | -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | `-oless` | `-less`            | Show output in `less` with `-oyaml` format.                                                                                                   |
 | -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -57,3 +93,56 @@ Options:
 | -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
 |*<pattern>|                    | Wildcard for resource name pattern (e.g., `nginx-*`).                                                                                         |
 | -------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+
+Demo app proxy retry testing:
+- Leader election and non-leader fault injection are disabled by default.
+- For fault injection, enable --leader-election --non-leader-action=close/503.
+  All pods keep their HTTP/HTTPS ports bound, except in skip-port-binding mode.
+- --leader-election-lease-name defaults to demo-app-leader. Use the same lease
+  name for participating replicas and a different name for unrelated apps.
+- --leader-election-namespace defaults to POD_NAMESPACE or the mounted service
+  account namespace. Election uses in-cluster credentials and requires permission
+  to create leases and get/update the named lease in coordination.k8s.io.
+- GET /keepalive returns HTTP 200 with body "ok" on the leader.
+  The action is selected once per request, before reading its body. A close
+  action closes the connection immediately without draining the body. Other
+  responses drain, discard and close any body first. Body read/close errors
+  return HTTP 400; canceled requests stop handling without a response.
+  Non-leader behavior is selected by --non-leader-action:
+  - none (default): return HTTP 200 with body "ok" without injecting faults.
+  - close: close the underlying connection before sending any response.
+  - 503: return HTTP 503 with pod identity and leadership state.
+  - close/503: independently choose close or HTTP 503 with 50% probability each
+    on every request. Non-leaders never return 200 in this mode. Small samples
+    are not guaranteed to contain equal numbers of each failure.
+  - skip-port-binding: an exclusive alternative to the request-level actions.
+    Only the leader binds HTTP/HTTPS ports, including gRPC. Non-leaders leave
+    all server ports unbound; leadership loss closes listeners and all existing
+    connections, including H2C and WebSockets. Regaining leadership rebinds them.
+    Before the first election, no replica binds its server ports.
+  Fault injection requires --leader-election. Request-level actions only affect
+  /keepalive; other endpoints, including /liveness, /ready, gRPC and WebSockets,
+  remain independent of leadership. Closing an HTTP/2 connection also interrupts
+  other streams on that connection. Skip-port-binding affects all endpoints and
+  cannot be mixed with close/503 or --close-connection-from-non-leader.
+- GET /liveness is the separate liveness endpoint and normally returns HTTP 200
+  with body "ok". It retains the explicit --fail-liveness-probe and
+  --fail-probes-after-seconds options, which do not affect /keepalive.
+  Demo app liveness probes use /liveness, not the fault-injection endpoint.
+  In skip-port-binding mode, omit HTTP probes on non-leaders because no server
+  ports are bound.
+- --close-connection-from-non-leader remains a legacy alias for
+  --non-leader-action=close; it cannot be combined with a different fault action.
+- Before a leader is elected, all replicas are non-leaders and apply the chosen
+  fault action. Only skip-port-binding closes/rebinds listeners on role changes.
+- Election is per namespace/cluster, not across clusters. Lease duration is 15s,
+  renewal deadline 10s, and retry period 2s. Shutdown releases the lease.
+- demo-apps/yaml/demo-app-rwpr-fault.yaml enables leader election and the
+  skip-port-binding action for two replicas, includes the service account and RBAC, and
+  omits readiness/liveness probes. Its proxy retry policy remains disabled;
+  configure retries on the proxy separately to test recovery.
+- Example: curl -v http://<pod-ip>:12012/keepalive
+  A leader responds with 200; a non-leader leaves its ports unbound in
+  skip-port-binding mode. In close/503 mode, a non-leader either closes the
+  connection without a response or returns 503. A retrying proxy can retry
+  another backend, but success depends on its retry policy and backend selection.

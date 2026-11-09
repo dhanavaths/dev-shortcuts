@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-discovery
+  labels: {app: service-discovery}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: service-discovery}}
+  template:
+    metadata:
+      labels: {app: service-discovery}
+    spec:
+      # Sidecar that installs tc/netem on this pod's eth0 to simulate
+      # packet drops at the *server* side. (Symmetric to drops on the
+      # router node; tc applies to egress, which from the server side
+      # drops ACKs/data going back to router -> same observable effect
+      # for connect retries and overall request timing.)
+      shareProcessNamespace: true
+      containers:
+        - name: discovery
+          image: IMAGE_PLACEHOLDER
+          imagePullPolicy: IfNotPresent
+          command: ["/usr/local/bin/discovery", "-addr", ":8080"]
+          ports:
+            - {containerPort: 8080, name: http}
+          readinessProbe:
+            httpGet: {path: /healthz, port: 8080}
+            periodSeconds: 5
+            timeoutSeconds: 30
+            failureThreshold: 60
+            successThreshold: 1
+        - name: netem
+          image: IMAGE_PLACEHOLDER
+          imagePullPolicy: IfNotPresent
+          command: ["/usr/local/bin/netem.sh"]
+          env:
+            # Default: no drops. Toggle via `kubectl set env` or
+            # re-apply with values like:
+            #   NETEM_LOSS=30%  NETEM_DELAY=100ms  NETEM_JITTER=20ms
+            #   NETEM_CYCLE=on=60s,off=30s
+            - {name: NETEM_IFACE, value: "eth0"}
+            - {name: NETEM_LOSS,  value: "0%"}
+            - {name: NETEM_DELAY, value: ""}
+            - {name: NETEM_JITTER, value: ""}
+            - {name: NETEM_CYCLE, value: ""}
+          securityContext:
+            capabilities:
+              add: ["NET_ADMIN", "NET_RAW"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-discovery
+spec:
+  selector: {app: service-discovery}
+  ports:
+    - {name: http, port: 8080, targetPort: 8080}

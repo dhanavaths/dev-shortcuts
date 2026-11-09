@@ -32,7 +32,9 @@ function execute_script_with_prod_context()
 {
     set_prod_kube_cofig
     execute_script $@
+    local status=$?
     reset_kube_cofig
+    return "$status"
 }
 
 function execute_script_with_local_context()
@@ -78,7 +80,7 @@ function handle_local_k_command() {
 		krc)
 			kind get clusters | awk '{}{print "kind export kubeconfig --name " $$0}{}' | sh
 			cluster_list=$(kind get clusters | awk '{print "kind-" $0}')
-			items=$(kubectl $kube_config config get-contexts | grep -v CURRENT | sed 's/^[ \*\t]*//')
+			items=$(kubectl $kube_context $kube_config config get-contexts | grep -v CURRENT | sed 's/^[ \*\t]*//')
 			# Iterate over each line in the items
 			while IFS= read -r item; do
 				# Split the line (assuming space-separated values) into separate variables
@@ -88,10 +90,10 @@ function handle_local_k_command() {
 				if echo "$cluster_list" | grep -w -q -- "$cluster_name"; then
 					echo "$cluster_name found in the list." >&2
 				else
-				 	kubectl $kube_config config delete-context $context_name
+				 	kubectl $kube_context $kube_config config delete-context $context_name
 				fi
 			done <<< "$items"
-            kubectl $kube_config config get-contexts
+            kubectl $kube_context $kube_config config get-contexts
 			;;
 
 
@@ -106,7 +108,7 @@ function handle_local_k_command() {
 			elif [ -z "$KIND_CLUSTER_NAME" ]; then
 				cluster_list=$(kind get clusters)
 			else
-				cluster_list=$(kubectl config current-context | cut -d'-' -f2-)
+				cluster_list=$(kubectl $kube_context config current-context | cut -d'-' -f2-)
 			fi
 
 			for cluster in $cluster_list; do

@@ -1,0 +1,33 @@
+# BASELINE router: production timeouts (connect=500ms, request=1500ms)
+# Retry backoff: 500ms * 2^attempt, max 3 retries (matches prod policy).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: router-baseline
+  labels: {app: router, variant: baseline}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: router, variant: baseline}}
+  template:
+    metadata:
+      labels: {app: router, variant: baseline}
+    spec:
+      containers:
+        - name: router
+          image: IMAGE_PLACEHOLDER
+          imagePullPolicy: IfNotPresent
+          command:
+            - /usr/local/bin/router
+            - -url=http://service-discovery:8080/services
+            - -connect-timeout=500ms
+            - -request-timeout=1500ms
+            - -retry-base=500ms
+            - -max-retries=3
+            - -refresh-every=5s
+            - -liveness-max-staleness=30s
+            - -report-every=10s
+            - -label=baseline
+          env:
+            - {name: STATS_PORT, value: "9090"}
+          ports:
+            - {containerPort: 9090, name: stats}

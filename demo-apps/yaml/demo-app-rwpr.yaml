@@ -5,32 +5,110 @@ metadata:
     microsoft-falcon.net/clusterip-check: "disabled"
     microsoft-falcon.net/falcon-core-service: "false"
   name: demo-app-rwpr
-  namespace: clusterfleet
+  namespace: falcon-core
 spec:
   version: "DEPLOYMENT_APP_VERSION"
   schedulingStrategy:
     preferredSliceStrategy:
-      minSlice: 3
-      minSliceSize: 30
-    slicePreference: NoSlice
+      minSlice: 2
+      minSliceSize: 15
+    slicePreference: AlwaysSlice
   rolloutStrategy:
     type: ReplicasWeightedProgressiveRollout
     replicasWeightedProgressiveRollout:
-      rollingWindowSizeLimit: 2
+      rollingWindowSizeLimit: 1
   workload:
+    - manifest:
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: demo-app-rwpr
+          namespace: falcon-core
+          labels:
+            app: demo-app-rwpr
+            router.falcon.io/port-name: "https"
+            microsoft-falcon.net/network-island: "azureregionalap"
+        spec:
+          type: ClusterIP
+          ports:
+          - name: http
+            port: 12002
+            protocol: TCP
+            targetPort: 12012           
+          - name: https
+            port: 12443
+            protocol: TCP
+            targetPort: 12443           
+          selector:
+            app: demo-app-rwpr
+    # - manifest:
+    #     apiVersion: v1
+    #     kind: Service
+    #     metadata:
+    #       name: falcon-discovery-demo-app-rwpr
+    #       namespace: falcon-core
+    #       labels:
+    #         app: demo-app-rwpr
+    #         microsoft-falcon.net/network-island: "azureregionalap"
+    #         router.falcon.io/port-name: "https"
+    #     spec:
+    #       type: ClusterIP
+    #       clusterIP: None
+    #       ports:
+    #       - name: http
+    #         port: 12012
+    #         protocol: TCP
+    #         targetPort: 12012
+    #       - name: https
+    #         port: 12443
+    #         protocol: TCP
+    #         targetPort: 12443
+    #       selector:
+    #         app: demo-app-rwpr
+    # - manifest:
+    #     apiVersion: multicluster.x-k8s.io/v1alpha1
+    #     kind: ServiceExport
+    #     metadata:
+    #       name: falcon-discovery-demo-app-rwpr
+    #       namespace: falcon-core
+    - manifest:
+        apiVersion: apis.clusterfleet.io/v1alpha1
+        kind: RoutingConfiguration
+        metadata:
+          name: demo-app-rwpr-kind
+          namespace: falcon-core
+        spec:
+          routing:
+            connection:
+              connectionPreference: no-tls
+              defaultHttpPort: 12012
+              httpVersion: http1.1
+            requests:
+              loadBalancingPolicy: random
+              retries:
+                enabled: false
+              timeoutInMilliseconds: 2100
+          routingClass: falcon-core.kind-router
+          serviceName: demo-app-rwpr
     - manifest:
         apiVersion: apps/v1
         kind: Deployment
         metadata:
-          name: demo-app
-          namespace: clusterfleet
+          name: demo-app-rwpr-1
+          namespace: falcon-core
         spec:
+          minReadySeconds: 0
           updateStrategy:
             rollingUpdate:
               maxSurge: 0
-              maxUnavailable: 10%
+              maxUnavailable: 1
             type: RollingUpdate
-          replicas: 7
+          strategy:
+            rollingUpdate:
+              maxSurge: 0
+              maxUnavailable: 1
+            type: RollingUpdate
+          replicas: 5
           selector:
             matchLabels:
               app: demo-app-rwpr
@@ -45,46 +123,83 @@ spec:
               - args:
                   - --http-port
                   - "12012"
+                  # - --http1-only
+                  - --https-port
+                  - "12443"
                   - --startup-delay
-                  - "2"
+                  - "0"
+                  - --read-timeout
+                  - "100s"
+                  - --write-timeout
+                  - "100s"
+                  - --idle-timeout
+                  - "100s"
+                  # - --debug-handler-logs
+                  # - "false"
                 env:
                 - name: TIMESTAMP
                   value: "DEPLOYMENT_TIMESTAMP"
-                envFrom:
-                - configMapRef:
-                    name: clusterfleet-config
+                # - name: GODEBUG
+                #   value: "http2debug=2"
                 image: demo-app:DEPLOYMENT_IMAGE_VERSION
+                imagePullPolicy: Always
                 name: demo-app-rwpr
+                ports:
+                - containerPort: 12012
+                  name: http
+                  protocol: TCP
+                - containerPort: 12443
+                  name: grpcs
+                  protocol: TCP
                 livenessProbe:
-                  failureThreshold: 3
+                  failureThreshold: 30
                   httpGet:
-                    path: /keepalive
-                    port: 12012
+                    path: /liveness
+                    port: http
                     scheme: HTTP
-                  initialDelaySeconds: 2
-                  periodSeconds: 10
+                  initialDelaySeconds: 1
+                  periodSeconds: 5
                   successThreshold: 1
                   timeoutSeconds: 2
                 readinessProbe:
                   failureThreshold: 3
                   httpGet:
                     path: /ready
-                    port: 12012
+                    port: http
                     scheme: HTTP
-                  initialDelaySeconds: 2
+                  initialDelaySeconds: 1
                   periodSeconds: 10
                   successThreshold: 1
                   timeoutSeconds: 2
+                volumeMounts:
+                  - name: falcon-core-dev-ssl-cert-volume
+                    mountPath: /falcon-managed-secrets
+                    readOnly: true
                 resources:
                   requests:
-                    cpu: 1200m
-                    memory: 128Mi
+                    cpu: 1000m
+                    memory: 1Gi
                   limits:
-                    cpu: 1200m
-                    memory: 256Mi
+                    cpu: 1000m
+                    memory: 1Gi
               dnsPolicy: ClusterFirst
               restartPolicy: Always
+              volumes:
+                - name: falcon-core-dev-ssl-cert-volume
+                  secret:
+                    secretName: falcon-core-dev-ssl-cert
               nodeSelector:
                 kubernetes.io/os: linux
                 scheduler.clusterfleet.io/ready: "true"
                 kubernetes.azure.com/mode: "user"
+    - manifest:
+        apiVersion: policy/v1
+        kind: PodDisruptionBudget
+        metadata:
+          name: demo-app-rwpr-pdb
+          namespace: falcon-core
+        spec:
+          maxUnavailable: 1
+          selector:
+            matchLabels:
+              app: demo-app-rwpr

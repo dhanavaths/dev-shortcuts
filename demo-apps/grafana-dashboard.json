@@ -1,0 +1,501 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "title": "Network Receive Bytes by Instance",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "sum by(instance) (rate(node_network_receive_bytes_total{cluster=\"$cluster\", instance=~\"$instance\"}[5m]))",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "spanNulls": false }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Fabric Router Routing Failed by Service/Zone/Node",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "sum by(service, zone, nodename) (rate(falcon_fabricrouter_routing_failed_counter{cluster=\"$cluster\", service=\"$service\", zone=\"$zone\"}[5m]))",
+          "legendFormat": "{{service}} / {{zone}} / {{nodename}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "spanNulls": false }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Pod Status Ready - falcon-core (kubernetesservicedisco)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 3,
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "sum by(cluster) (kube_pod_status_ready{namespace=\"falcon-core\", cluster=\"$cluster\", pod=~\"kubernetesservicedisco\", condition=\"true\"})",
+          "legendFormat": "{{cluster}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "spanNulls": false }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Pod Status Ready - ingress-reco",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 4,
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "sum by(cluster) (kube_pod_status_ready{namespace=\"ingress-reco\", cluster=\"$cluster\", condition=\"true\"})",
+          "legendFormat": "{{cluster}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "spanNulls": false }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Network Receive Drops by Instance",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "id": 5,
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "sum by(instance) (rate(node_network_receive_drop_total{cluster=\"$cluster\", instance=~\"$instance\"}[5m]))",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "spanNulls": false }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Pod Info by Namespace (on specific nodes)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "id": 6,
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "sum by(namespace) (kube_pod_info{cluster=\"$cluster\", node=~\"$node\"})",
+          "legendFormat": "{{namespace}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "spanNulls": false }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Ready Pods by Namespace (on specific nodes)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "id": 7,
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "sum by (namespace) (\n  kube_pod_info{cluster=\"$cluster\", node=~\"$node\"}\n  * on(pod, namespace) \n  kube_pod_status_ready{cluster=\"$cluster\", condition=\"true\"}\n)",
+          "legendFormat": "{{namespace}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "spanNulls": false }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Fabric Router Routing Requests by Service",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "id": 8,
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "sum by(service) (rate(falcon_fabricrouter_routing_request_counter{cluster=\"$cluster\", service=\"$service\"}[5m]))",
+          "legendFormat": "{{service}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "spanNulls": false }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Pod Info by Namespace (gen09 nodes, excluding system ns)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+      "id": 9,
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "sum by(namespace) (kube_pod_info{cluster=\"$cluster\", node=~\"$node\", namespace!~\"falcon-core|kube-system|ingress-reco|clusterfleet\"})",
+          "legendFormat": "{{namespace}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "spanNulls": false }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "CPU CFS Throttled Seconds - ingress-reco",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
+      "id": 10,
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "sum by (cluster, namespace, pod) (\n  rate(container_cpu_cfs_throttled_seconds_total{namespace=\"$namespace\", cluster=\"$cluster\"}[5m])\n)",
+          "legendFormat": "{{namespace}} / {{pod}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "spanNulls": false }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "CPU CFS Throttle % - ingress-reco (>5%)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 40 },
+      "id": 11,
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "100 * sum by (namespace, pod, container) (\n  rate(container_cpu_cfs_throttled_periods_total{container!=\"\", namespace=\"$namespace\", cluster=\"$cluster\"}[5m])\n) \n/ \nsum by (namespace, pod, container) (\n  rate(container_cpu_cfs_periods_total{container!=\"\", namespace=\"$namespace\", cluster=\"$cluster\"}[5m])\n) > 0.05",
+          "legendFormat": "{{namespace}} / {{pod}} / {{container}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "spanNulls": false }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Pod Status Ready - Specific Pod",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 40 },
+      "id": 12,
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "kube_pod_status_ready{pod=\"$pod\"}",
+          "legendFormat": "{{pod}} condition={{condition}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "spanNulls": false }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Fabric Router Remote Discovery Retry Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 48 },
+      "id": 13,
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "falcon_fabricrouter_remote_discovery_retry_rate{cluster=\"$cluster\"}",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "spanNulls": false }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Ready Pods in ingress-reco (on specific nodes)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 48 },
+      "id": 14,
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "sum by (namespace) (\n  kube_pod_info{cluster=\"$cluster\", node=~\"$node\"}\n  * on(pod, namespace) \n  kube_pod_status_ready{namespace=\"ingress-reco\", cluster=\"$cluster\", condition=\"true\"}\n)",
+          "legendFormat": "{{namespace}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "spanNulls": false }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "CPU SoftIRQ % by Instance/CPU",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 56 },
+      "id": 15,
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "avg by(instance, cpu) (irate(node_cpu_seconds_total{cluster=\"$cluster\", mode=\"softirq\", instance=~\"$instance\"}[5m]) * 100 )",
+          "legendFormat": "{{instance}} cpu={{cpu}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "spanNulls": false }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Softnet Dropped Total",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 56 },
+      "id": 16,
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "node_softnet_dropped_total{cluster=\"$cluster\"}",
+          "legendFormat": "{{instance}} cpu={{cpu}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "spanNulls": false }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Container Network Receive Bytes (fabricr pods)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 64 },
+      "id": 17,
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "sum(rate(container_network_receive_bytes_total{cluster=\"$cluster\", instance=\"$instance\", interface=\"$interface\", pod=~\"$pod\"}[5m])) by (namespace)",
+          "legendFormat": "{{namespace}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "spanNulls": false }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Network Observability Drop/Forward Ratio (>20%, fwd>10)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 64 },
+      "id": 18,
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "targets": [
+        {
+          "expr": "(sum by (instance,direction,cluster) (rate(networkobservability_drop_count{}[5m]))/sum by (instance,direction,cluster) (rate(networkobservability_forward_count{}[5m])) > .2) and (sum by (instance,direction,cluster) (rate(networkobservability_forward_count{}[5m])) > 10)",
+          "legendFormat": "{{instance}} {{direction}} {{cluster}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "spanNulls": false }
+        },
+        "overrides": []
+      }
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["infrastructure", "network", "kubernetes"],
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0,
+        "label": "Data Source"
+      },
+      {
+        "name": "cluster",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${datasource}" },
+        "query": "label_values(kube_pod_info, cluster)",
+        "current": { "text": "sc-kors-htv3d", "value": "sc-kors-htv3d" },
+        "refresh": 2,
+        "sort": 1,
+        "hide": 0,
+        "label": "Cluster"
+      },
+      {
+        "name": "namespace",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${datasource}" },
+        "query": "label_values(kube_pod_info{cluster=\"$cluster\"}, namespace)",
+        "current": { "text": "ingress-reco", "value": "ingress-reco" },
+        "refresh": 2,
+        "sort": 1,
+        "hide": 0,
+        "label": "Namespace",
+        "includeAll": true,
+        "allValue": ".*"
+      },
+      {
+        "name": "instance",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${datasource}" },
+        "query": "label_values(node_network_receive_bytes_total{cluster=\"$cluster\"}, instance)",
+        "current": {},
+        "refresh": 2,
+        "sort": 1,
+        "hide": 0,
+        "label": "Instance",
+        "includeAll": true,
+        "allValue": ".*"
+      },
+      {
+        "name": "node",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${datasource}" },
+        "query": "label_values(kube_pod_info{cluster=\"$cluster\"}, node)",
+        "current": {},
+        "refresh": 2,
+        "sort": 1,
+        "hide": 0,
+        "label": "Node",
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*"
+      },
+      {
+        "name": "service",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${datasource}" },
+        "query": "label_values(falcon_fabricrouter_routing_request_counter{cluster=\"$cluster\"}, service)",
+        "current": { "text": "bing-reco.prodbg-recoapi-sage-ip", "value": "bing-reco.prodbg-recoapi-sage-ip" },
+        "refresh": 2,
+        "sort": 1,
+        "hide": 0,
+        "label": "Service",
+        "includeAll": true,
+        "allValue": ".*"
+      },
+      {
+        "name": "zone",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${datasource}" },
+        "query": "label_values(falcon_fabricrouter_routing_failed_counter{cluster=\"$cluster\"}, zone)",
+        "current": { "text": "koreasouth", "value": "koreasouth" },
+        "refresh": 2,
+        "sort": 1,
+        "hide": 0,
+        "label": "Zone",
+        "includeAll": true,
+        "allValue": ".*"
+      },
+      {
+        "name": "pod",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${datasource}" },
+        "query": "label_values(kube_pod_status_ready{cluster=\"$cluster\"}, pod)",
+        "current": {},
+        "refresh": 2,
+        "sort": 1,
+        "hide": 0,
+        "label": "Pod",
+        "includeAll": true,
+        "allValue": ".*"
+      },
+      {
+        "name": "interface",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "${datasource}" },
+        "query": "label_values(container_network_receive_bytes_total{cluster=\"$cluster\"}, interface)",
+        "current": { "text": "eth0", "value": "eth0" },
+        "refresh": 2,
+        "sort": 1,
+        "hide": 0,
+        "label": "Interface"
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Cluster Investigation - sc-kors-htv3d",
+  "uid": "cluster-investigation-kors",
+  "version": 1
+}

@@ -100,6 +100,7 @@ def _parse_framework(data):
 
     _print_as_table(cluster_data, cluster_data_errors)
     print()
+    print(f"total pods           : {total_task_count + job_tasks_count}")
     print(f"taskmanager role pods: {total_task_count}")
     print(f"jobmanager  role pods: {job_tasks_count}")
 
@@ -123,10 +124,12 @@ def _parse_framework(data):
 
     # task counts
     count_data_list = []
+    total_count = 0
     for key, count in state_counts.items():
         count_data_list.append((key[0], key[1], count))
+        total_count += count
     count_data_list.sort(key=lambda x: x[0])
-    count_data_list = [('CLUSTER', 'TASK_STATE', 'COUNT')] + count_data_list
+    count_data_list = [('CLUSTER', 'TASK_STATE', 'COUNT')] + count_data_list + [('TOTAL', '', total_count)]
     _print_as_table(count_data_list)
     
     spec_list = [('NAMESPACE', 'NAME', 'GENERATION', 'OBSERVED_GENERATION', 'APPLICATION_STATE')]
@@ -201,10 +204,17 @@ def __print_deployment_manifest_statuses_table(data):
         # if _add_empty_row:
         #     mw_status_table.add_row(['-'] * len(mw_status_table.field_names))    
 
+    total_desired = 0
+    total_current = 0
+    total_available = 0
     for row in sorted(status_table_rows, key=lambda x: (-x[6], x[0])):
         row.pop(0)
+        total_desired += row[2]
+        total_current += row[3]
+        total_available += row[4]
         mw_status_table.add_row(row)
 
+    mw_status_table.add_row(['TOTAL', '', total_desired, total_current, total_available, total_available - total_desired, '', '', '', '', ''])
     print(mw_status_table)
     print()
 
@@ -347,10 +357,17 @@ def __print_daemonset_manifest_statuses_table(data):
         # if _add_empty_row:
         #     mw_status_table.add_row([' '] * len(mw_status_table.field_names))    
 
+    total_desired = 0
+    total_ready = 0
+    total_available = 0
     for row in sorted(status_table_rows, key=lambda x: (-x[5], x[0])):
         row.pop(0)
+        total_desired += row[2]
+        total_ready += row[6]
+        total_available += row[7]
         mw_status_table.add_row(row)
 
+    mw_status_table.add_row(['TOTAL', '', total_desired, '', '', '', total_ready, total_available, '', '', '', ''])
     print(mw_status_table)
     print(f"Clusters with status: {cl_counters}")
     print()
