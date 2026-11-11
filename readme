@@ -41,6 +41,7 @@ Application status rendering:
 - Version 2 detection and rendering live in pyscripts/parse_application_status_v2.py;
   pyscripts/parse_application_status.py remains the entry point and version 1 renderer.
 - Counts absent from version 2 status are shown as "-", not as zero.
+- Rollout Gen shows "-" for an unset value (-1); Gen Diff remains numeric.
 
 Copy a local PowerShell script and open a shell in a matching pod on a node:
 - Implemented in kubectl/run_exec.sh, invoked by kubectl/commands.sh, and uses the

@@ -143,17 +143,26 @@ class ApplicationStatusTests(unittest.TestCase):
                 self.assertEqual(application, original)
                 cluster_table, replica_table = tables[:2]
                 self.assertEqual(cluster_table.rows[0], [
-                    'cluster-a', 'True', 0, 12, 0, '-', 'No', '-', '',
+                    'cluster-a', 'True', 0, 12, 0, '-', '-', '-', '',
                 ])
                 self.assertEqual(cluster_table.rows[1], [
                     parser.YELLOW_COLOR + 'cluster-b' + parser.DEFAULT_COLOR,
-                    'False', 7, 11, -1, -1, 'Yes', '2026-11-11T18:08:16Z',
+                    'False', 7, 11, -1, '-', 'Yes', '2026-11-11T18:08:16Z',
                     'Not ready manifests:\n- test-ns/test-workload',
                 ])
                 self.assertEqual(replica_table.rows, [
                     ['Aggregated', '-', 434, 417, 430, 430, 4],
                     ['Target Version', 434, 417, '-', 414, 414, 3],
                 ])
+
+    def test_v2_rollout_generation_placeholder_preserves_other_values(self):
+        for generation, expected in ((-1, '-'), (0, 0), (12, 12)):
+            with self.subTest(generation=generation):
+                status = make_v2_status()
+                status['clusters'][0]['inRolloutGeneration'] = generation
+                _, tables = self.render(make_application('Deployment', status))
+                self.assertEqual(tables[0].rows[1][5], expected)
+                self.assertEqual(tables[0].rows[1][4], -1)
 
     def test_v2_missing_counts_are_not_reported_as_zero(self):
         status = {
@@ -163,7 +172,7 @@ class ApplicationStatusTests(unittest.TestCase):
         }
         _, tables = self.render(make_application('DaemonSet', status))
         self.assertEqual(tables[0].rows[0][1:], [
-            'Unknown', '-', '-', '-', '-', 'No', '-', '',
+            'Unknown', '-', '-', '-', '-', '-', '-', '',
         ])
         self.assertEqual(tables[1].rows, [
             ['Aggregated', '-', '-', '-', '-', '-', '-'],

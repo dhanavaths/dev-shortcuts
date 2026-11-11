@@ -28,6 +28,7 @@ def print_status_tables(data, print_section_header):
         )
         ready = ready_condition.get('status', 'Unknown')
         observed_generation = cluster.get('observedGeneration')
+        rollout_generation = cluster.get('inRolloutGeneration', '-')
         generation_diff = (
             observed_generation - data['metadata']['generation']
             if observed_generation is not None else '-'
@@ -42,8 +43,8 @@ def print_status_tables(data, print_section_header):
             cluster.get('replicas', '-'),
             observed_generation if observed_generation is not None else '-',
             generation_diff,
-            cluster.get('inRolloutGeneration', '-'),
-            'Yes' if cluster_name in upgrading_clusters else 'No',
+            '-' if rollout_generation == -1 else rollout_generation,
+            'Yes' if cluster_name in upgrading_clusters else '-',
             cluster.get('lastManifestStatusObservedTime', '-'),
             message,
         ])
