@@ -6,8 +6,9 @@ NOTE: change the path of dev-shortcuts to your local path
 The prompt refreshes Kubernetes, runtime, and Git context using PROMPT_COMMAND.
 This avoids command-substitution syntax errors during interactive prompt rendering
 in Git Bash. Existing prompt hooks are preserved. Reload ~/.bashrc after updating.
-Git Bash variants (including UCRT64 and MINGW64) show HOST when a drive other than
-C: is mounted, or SAW otherwise. Linux and WSL keep their respective labels.
+Git Bash variants (including UCRT64 and MINGW64) show SAW when this path exists:
+C:\ProgramData\Microsoft\Windows\Start Menu\Programs\SAW Control Panel
+Otherwise they show HOST. Linux and WSL keep their respective labels.
 
 
 Recommendations:

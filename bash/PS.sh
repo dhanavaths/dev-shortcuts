@@ -44,14 +44,10 @@ function runtime_env {
 
     # Git Bash builds use either the MSYS or Cygwin runtime.
     elif [[ "$OSTYPE" == msys* || "$OSTYPE" == cygwin* ]]; then
-        # Check for any drive letters other than C:
-        # We look for mount points like /d, /e, etc. 
-        local extra_drives=$(mount | grep -E '^.:' | grep -v '^C:' | wc -l)
-
-        if [ "$extra_drives" -gt 0 ]; then
-            echo -e "\e[90m[HOST]\e[0m"
-        else
+        if test -e 'C:\ProgramData\Microsoft\Windows\Start Menu\Programs\SAW Control Panel'; then
             echo -e "\e[90m[SAW]\e[0m"
+        else
+            echo -e "\e[90m[HOST]\e[0m"
         fi
     else
         echo -e "\e[90m[UNKNOWN]\e[0m"

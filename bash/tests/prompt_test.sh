@@ -11,20 +11,20 @@ fail() {
 
 (
     source "$PROMPT_SCRIPT"
-    mount() {
-        printf '%s\n' 'C: on /c type ntfs'
-        if [[ "$drive_layout" == extra ]]; then
-            printf '%s\n' 'Q: on /q type refs'
-        fi
+    test() {
+        [[ $# == 2 && "$1" == -e &&
+            "$2" == 'C:\ProgramData\Microsoft\Windows\Start Menu\Programs\SAW Control Panel' ]] ||
+            fail 'incorrect SAW marker existence check'
+        [[ "$saw_marker" == present ]]
     }
 
     for OSTYPE in msys cygwin; do
         for MSYSTEM in MINGW64 MINGW32 UCRT64 CLANG64 CLANGARM64 MSYS; do
-            for drive_layout in c-only extra; do
-                expected=SAW
-                [[ "$drive_layout" != extra ]] || expected=HOST
+            for saw_marker in absent present; do
+                expected=HOST
+                [[ "$saw_marker" != present ]] || expected=SAW
                 [[ "$(runtime_env)" == $'\e[90m['"$expected"$']\e[0m' ]] ||
-                    fail "incorrect runtime label for $OSTYPE/$MSYSTEM/$drive_layout"
+                    fail "incorrect runtime label for $OSTYPE/$MSYSTEM/$saw_marker"
             done
         done
     done
