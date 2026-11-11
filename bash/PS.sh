@@ -42,8 +42,8 @@ function runtime_env {
             echo -e "\e[90m[linux]\e[0m"
         fi
 
-    # 2. Check if the environment is MINGW64
-    elif [ "$MSYSTEM" = "MINGW64" ]; then
+    # Git Bash builds use either the MSYS or Cygwin runtime.
+    elif [[ "$OSTYPE" == msys* || "$OSTYPE" == cygwin* ]]; then
         # Check for any drive letters other than C:
         # We look for mount points like /d, /e, etc. 
         local extra_drives=$(mount | grep -E '^.:' | grep -v '^C:' | wc -l)
@@ -58,10 +58,16 @@ function runtime_env {
     fi
 }
 
-if [ "$MSYSTEM" = "MINGW64" ]; then
-    PROMPT_COMMAND='export PS1="$(k8s_dev_context) $(runtime_env) \w $(git_context)\n\$ "'
-else
-    export PS1="\$(k8s_dev_context) \$(runtime_env) \w \$(git_context)\n\$ "
+function _dev_shortcuts_update_prompt {
+    _dev_shortcuts_k8s_context=$(k8s_dev_context)
+    _dev_shortcuts_runtime_env=$(runtime_env)
+    _dev_shortcuts_git_context=$(git_context)
+    export PS1='${_dev_shortcuts_k8s_context} ${_dev_shortcuts_runtime_env} \w ${_dev_shortcuts_git_context}\n\$ '
+}
+
+# Appending also preserves the remaining elements of an existing hook array.
+if [[ ${PROMPT_COMMAND-} != *"_dev_shortcuts_update_prompt"* ]]; then
+    PROMPT_COMMAND+=$'\n_dev_shortcuts_update_prompt'
 fi
  
 if [ -d "${HOME}/workspace" ]; then
