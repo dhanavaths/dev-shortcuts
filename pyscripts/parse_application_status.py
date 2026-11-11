@@ -5,6 +5,11 @@ import yaml # pip install pyyaml
 import pprint
 from prettytable import PrettyTable # pip install prettytable
 
+if __package__:
+    from . import parse_application_status_v2 as status_v2
+else:
+    import parse_application_status_v2 as status_v2
+
 framework = 1
 daemonset = 2
 deployment = 3
@@ -393,7 +398,9 @@ def _parse_regular_workload(data, is_daemonset=False):
         _print_err('Status not found!')
         return
     __print_application_spec(data)
-    if is_daemonset:
+    if status_v2.get_status_version(data) == 2:
+        status_v2.print_status_tables(data, _print_section_header)
+    elif is_daemonset:
         __print_daemonset_manifest_statuses_table(data)
     else:
         __print_deployment_manifest_statuses_table(data)

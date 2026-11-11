@@ -31,6 +31,16 @@ Local environment:
 - example: klocal <ns> <verb> [resource] [options]
 - klocal appropriately switches to use the default kubeconfig
 
+Application status rendering:
+- Automatically detects the status format; no version flag is required.
+- Version 1 keeps the per-manifest Deployment, StatefulSet, and DaemonSet tables.
+- Version 2 is detected by aggregatedStatus or targetVersionStatus and shows
+  cluster readiness, replicas, generations, rollout membership, and failure messages,
+  plus separate aggregate and target-version replica summaries.
+- Version 2 detection and rendering live in pyscripts/parse_application_status_v2.py;
+  pyscripts/parse_application_status.py remains the entry point and version 1 renderer.
+- Counts absent from version 2 status are shown as "-", not as zero.
+
 Copy a local PowerShell script and open a shell in a matching pod on a node:
 - Implemented in kubectl/run_exec.sh, invoked by kubectl/commands.sh, and uses the
   shared parser's exported options directly.
